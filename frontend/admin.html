@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -8,24 +10,84 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Admin Panel | AnthropicBots E-Commerce</title>
+    <!-- SEO -->
 
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
+    <meta
+        name="description"
+        content="Admin dashboard for managing products, orders, users, inventory, and analytics."
+    >
 
-    <link rel="stylesheet" href="styles/admin.css">
+    <meta
+        name="keywords"
+        content="admin dashboard, ecommerce admin, product management, orders"
+    >
+
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
+
+    <title>
+        Admin Panel | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/admin.css"
+    >
+
+    <!-- Icons -->
 
     <link
         rel="stylesheet"
         href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
     >
+
 </head>
 
 <body>
+
+    <!-- Navbar -->
 
     <div id="navbar"></div>
 
@@ -37,7 +99,11 @@
 
         <div class="admin-sidebar">
 
-            <h2>Admin Panel</h2>
+            <h2>
+
+                Admin Panel
+
+            </h2>
 
             <ul>
 
@@ -95,33 +161,65 @@
 
                 <div class="admin-card">
 
-                    <h3>Total Orders</h3>
+                    <h3>
 
-                    <p id="total-orders">0</p>
+                        Total Orders
 
-                </div>
+                    </h3>
 
-                <div class="admin-card">
+                    <p id="total-orders">
 
-                    <h3>Total Revenue</h3>
+                        0
 
-                    <p id="total-revenue">₹0</p>
-
-                </div>
-
-                <div class="admin-card">
-
-                    <h3>Total Users</h3>
-
-                    <p id="total-users">0</p>
+                    </p>
 
                 </div>
 
                 <div class="admin-card">
 
-                    <h3>Products</h3>
+                    <h3>
 
-                    <p id="total-products">0</p>
+                        Total Revenue
+
+                    </h3>
+
+                    <p id="total-revenue">
+
+                        ₹0
+
+                    </p>
+
+                </div>
+
+                <div class="admin-card">
+
+                    <h3>
+
+                        Total Users
+
+                    </h3>
+
+                    <p id="total-users">
+
+                        0
+
+                    </p>
+
+                </div>
+
+                <div class="admin-card">
+
+                    <h3>
+
+                        Products
+
+                    </h3>
+
+                    <p id="total-products">
+
+                        0
+
+                    </p>
 
                 </div>
 
@@ -131,7 +229,11 @@
 
             <div class="admin-section">
 
-                <h2>Add Product</h2>
+                <h2>
+
+                    Add Product
+
+                </h2>
 
                 <form id="product-form">
 
@@ -145,28 +247,38 @@
                         >
 
                         <input
-                            type="text"
+                            type="number"
                             id="product-price"
                             placeholder="Price"
                             required
                         >
 
                         <select id="product-category">
+
                             <option value="fashion">
+
                                 Fashion
+
                             </option>
-                        
+
                             <option value="hoodie">
+
                                 Hoodie
+
                             </option>
-                        
+
                             <option value="shoes">
+
                                 Shoes
+
                             </option>
-                        
+
                             <option value="accessories">
+
                                 Accessories
+
                             </option>
+
                         </select>
 
                         <input
@@ -177,18 +289,27 @@
                         >
 
                         <select id="product-status">
+
                             <option value="In Stock">
+
                                 In Stock
+
                             </option>
-                        
+
                             <option value="Out Of Stock">
+
                                 Out Of Stock
+
                             </option>
-                        
+
                             <option value="Hidden">
+
                                 Hidden
+
                             </option>
+
                         </select>
+
                     </div>
 
                     <textarea
@@ -198,20 +319,25 @@
                     ></textarea>
 
                     <input
-                        type="text"
+                        type="url"
                         id="product-image"
                         placeholder="Image URL"
                         required
                     >
 
                     <div class="featured-toggle">
+
                         <label>
+
                             <input
                                 type="checkbox"
                                 id="featured-product"
                             >
+
                             Featured Product
+
                         </label>
+
                     </div>
 
                     <button type="submit">
@@ -225,50 +351,121 @@
             </div>
 
             <!-- Product Table -->
+
             <div class="admin-section">
-                <h2>Product Management</h2>
+
+                <h2>
+
+                    Product Management
+
+                </h2>
+
                 <table>
+
                     <thead>
+
                         <tr>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Status</th>
-                        <th>Featured</th>
-                        <th>Inventory</th>
-                        <th>Actions</th>                        
-                    </tr>
+
+                            <th>Product</th>
+
+                            <th>Category</th>
+
+                            <th>Price</th>
+
+                            <th>Stock</th>
+
+                            <th>Status</th>
+
+                            <th>Featured</th>
+
+                            <th>Inventory</th>
+
+                            <th>Actions</th>
+
+                        </tr>
+
                     </thead>
+
                     <tbody id="product-table-body"></tbody>
+
                 </table>
+
             </div>
 
             <!-- Orders -->
+
             <div class="admin-section">
-                <h2>Recent Orders</h2>
+
+                <h2>
+
+                    Recent Orders
+
+                </h2>
+
                 <table>
+
                     <thead>
+
                         <tr>
+
                             <th>Order ID</th>
+
                             <th>Date</th>
+
                             <th>Items</th>
+
                         </tr>
+
                     </thead>
+
                     <tbody id="orders-table-body"></tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     </section>
+
+    <!-- Footer -->
 
     <div id="footer"></div>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="scripts/components.js"></script>
-    <script src="scripts/auth.js"></script>
-    <script src="scripts/admin.js"></script>
+    <!-- Core Scripts -->
+
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Admin Script -->
+
+    <script
+        defer
+        src="scripts/admin.js"
+    ></script>
 
 </body>
+
 </html>

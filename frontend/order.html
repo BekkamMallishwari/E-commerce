@@ -2,23 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Track Order | AnthropicBots E-Commerce</title>
+    <!-- SEO -->
+    <meta
+        name="description"
+        content="Track your order status and delivery progress with AnthropicBots E-Commerce."
+    >
 
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
+    <meta
+        name="keywords"
+        content="track order, order status, ecommerce delivery"
+    >
 
-    <link rel="stylesheet" href="styles/order.css">
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
 
+    <title>
+        Track Order | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/order.css"
+    >
+
+    <!-- Icons -->
     <link
         rel="stylesheet"
         href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
@@ -26,136 +78,136 @@
 </head>
 
 <body>
-
+    <!-- Navbar -->
     <div id="navbar"></div>
 
     <!-- Header -->
-
     <section id="order-header">
-
-        <h2>Track Your Order</h2>
-
+        <h2>
+            Track Your Order
+        </h2>
         <p>
             Monitor your order delivery progress
         </p>
-
     </section>
 
-    <!-- Order Details -->
-
-    <section id="order-page" class="section-p1">
-
+    <!-- Order Page -->
+    <section
+        id="order-page"
+        class="section-p1"
+    >
         <div class="order-card">
-
+            <!-- Top -->
             <div class="order-top">
-
                 <div>
-
                     <h3 id="order-id">
-
                         Order ID
-
                     </h3>
-
                     <p id="order-date">
-
                         Date
-
                     </p>
-
                 </div>
 
                 <div class="order-status">
-
                     <span id="status-badge">
-
                         Pending
-
                     </span>
-
                 </div>
-
             </div>
 
             <!-- Timeline -->
-
             <div class="tracking-timeline">
-
                 <div class="tracking-step active-step">
-
                     <div class="step-circle">
-
                         <i class="fas fa-check"></i>
-
                     </div>
-
-                    <p>Order Placed</p>
-
+                    <p>
+                        Order Placed
+                    </p>
                 </div>
-
                 <div class="tracking-line"></div>
-
-                <div class="tracking-step" id="processing-step">
-
+                <div
+                    class="tracking-step"
+                    id="processing-step"
+                >
                     <div class="step-circle">
-
                         <i class="fas fa-box"></i>
-
                     </div>
-
-                    <p>Processing</p>
-
+                    <p>
+                        Processing
+                    </p>
                 </div>
-
                 <div class="tracking-line"></div>
-
-                <div class="tracking-step" id="shipped-step">
-
+                <div
+                    class="tracking-step"
+                    id="shipped-step"
+                >
                     <div class="step-circle">
-
                         <i class="fas fa-shipping-fast"></i>
-
                     </div>
-
-                    <p>Shipped</p>
-
+                    <p>
+                        Shipped
+                    </p>
                 </div>
 
                 <div class="tracking-line"></div>
-
-                <div class="tracking-step" id="delivered-step">
-
+                <div
+                    class="tracking-step"
+                    id="delivered-step"
+                >
                     <div class="step-circle">
-
                         <i class="fas fa-home"></i>
-
                     </div>
-
-                    <p>Delivered</p>
-
+                    <p>
+                        Delivered
+                    </p>
                 </div>
-
             </div>
 
             <!-- Items -->
-
             <div class="order-items">
-
-                <h3>Order Items</h3>
-
+                <h3>
+                    Order Items
+                </h3>
                 <div id="order-items-container"></div>
-
             </div>
-
         </div>
-
     </section>
 
+    <!-- Footer -->
     <div id="footer"></div>
 
-    <script src="scripts/components.js"></script>
+    <!-- Core Scripts -->
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
 
-    <script src="scripts/order.js"></script>
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Order Script -->
+    <script
+        defer
+        src="scripts/order.js"
+    ></script>
 
 </body>
 </html>

@@ -1,191 +1,407 @@
 // notification helper
-const notify = (message, type = "info") => {
-    if (typeof window.showToast === "function") {
-        window.showToast(message, type);
-    } else {
-        console[type === "error" ? "error" : "log"](message);
+const notify = (
+    message,
+    type = "info"
+) => {
+    if (
+        typeof window.showToast ===
+        "function"
+    ) {
+        window.showToast(
+            message,
+            type
+        );
+        return;
+    }
 
-        if (type === "error") {
-            alert(message);
-        }
+    console[
+        type === "error"
+            ? "error"
+            : "log"
+    ](message);
+    if (
+        type === "error"
+    ) {
+        alert(message);
     }
 };
 
 // safe local storage helpers
-const getJSON = (key, fallback = null) => {
+const getJSON = (
+    key,
+    fallback = null
+) => {
     try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : fallback;
+        const value =
+            localStorage.getItem(
+                key
+            );
+
+        return value
+            ? JSON.parse(value)
+            : fallback;
+
     } catch (error) {
-        console.error(`getJSON error for key "${key}":`, error);
+        console.error(
+            `getJSON error for key "${key}":`,
+            error
+        );
         return fallback;
     }
 };
 
-const setJSON = (key, value) => {
+const setJSON = (
+    key,
+    value
+) => {
     try {
-        localStorage.setItem(key, JSON.stringify(value));
+        localStorage.setItem(
+            key,
+            JSON.stringify(value)
+        );
+
         return true;
     } catch (error) {
-        console.error(`setJSON error for key "${key}":`, error);
+        console.error(
+            `setJSON error for key "${key}":`,
+            error
+        );
         return false;
     }
 };
 
-const removeStorage = (key) => {
+const removeStorage = (
+    key
+) => {
     try {
-        localStorage.removeItem(key);
+        localStorage.removeItem(
+            key
+        );
     } catch (error) {
-        console.error(`removeStorage error for key "${key}":`, error);
+        console.error(
+            `removeStorage error for key "${key}":`,
+            error
+        );
     }
 };
 
 // auth helpers
-const getToken = () => localStorage.getItem("token");
-const getRefreshToken = () => localStorage.getItem("refreshToken");
-const getUser = () => getJSON("user");
+const getToken = () =>
+    localStorage.getItem(
+        "token"
+    );
+
+const getRefreshToken = () =>
+    localStorage.getItem(
+        "refreshToken"
+    );
+
+const getUser = () =>
+    getJSON(
+        "user"
+    );
+
 const clearAuthData = () => {
-    removeStorage("token");
-    removeStorage("refreshToken");
-    removeStorage("user");
+    removeStorage(
+        "token"
+    );
+    removeStorage(
+        "refreshToken"
+    );
+    removeStorage(
+        "user"
+    );
 };
 
 const requireAuth = () => {
-    const token = getToken();
-    const user = getUser();
-    if (!token || !user) {
-        notify("Please sign in to continue", "error");
+    const token =
+        getToken();
+
+    const user =
+        getUser();
+
+    if (
+        !token
+        ||
+        !user
+    ) {
+        notify(
+            "Please sign in to continue",
+            "error"
+        );
         setTimeout(() => {
-            window.location.href = "signin.html";
+            window.location.href =
+                "signin.html";
         }, 800);
         return null;
     }
     return user;
 };
 
-// token refresh
-const refreshAccessToken = async () => {
-    try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
+// refresh token
+const refreshAccessToken =
+    async () => {
+        try {
+            const refreshToken =
+                getRefreshToken();
+            if (
+                !refreshToken
+            ) {
+                clearAuthData();
+                return null;
+            }
+
+            const response =
+                await fetch(
+                    `${CONFIG.API_BASE}/auth/refresh-token`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify({
+                                refreshToken
+                            })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (
+                !response.ok
+                ||
+                !data.token
+            ) {
+                clearAuthData();
+                return null;
+            }
+            localStorage.setItem(
+                "token",
+                data.token
+            );
+            return data.token;
+        } catch (error) {
+            console.error(
+                "TOKEN REFRESH ERROR:",
+                error
+            );
             clearAuthData();
             return null;
         }
+    };
 
-        const response = await fetch(
-            `${CONFIG.API_BASE}/auth/refresh-token`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ refreshToken })
-            }
-        );
-        const data = await response.json();
-        if (!response.ok || !data.token) {
-            clearAuthData();
-            return null;
-        }
-        localStorage.setItem("token", data.token);
-        return data.token;
-    } catch (error) {
-        console.error("Token refresh failed:", error);
-        clearAuthData();
-        return null;
-    }
-};
+// api request
+const apiRequest =
+    async (
+        url,
+        options = {},
+        retry = true
+    ) => {
+        try {
+            const token =
+                getToken();
 
-// api request wrapper
-const apiRequest = async (url, options = {}, retry = true) => {
-    try {
-        let token = getToken();
-        const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(options.headers || {})
-        };
-        let response = await fetch(
-            `${CONFIG.API_BASE}${url}`,
-            {
-                ...options,
-                headers
+            const headers = {
+                "Content-Type":
+                    "application/json",
+
+                ...(token
+                    ? {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                    : {}),
+                ...(options.headers || {})
+            };
+
+            const response =
+                await fetch(
+                    `${CONFIG.API_BASE}${url}`,
+                    {
+                        ...options,
+                        headers
+                    }
+                );
+
+            // unauthorized
+            if (
+                response.status === 401
+                &&
+                retry
+            ) {
+
+                const newToken =
+                    await refreshAccessToken();
+
+                if (
+                    newToken
+                ) {
+                    return apiRequest(
+                        url,
+                        options,
+                        false
+                    );
+                }
+
+                clearAuthData();
+                notify(
+                    "Session expired. Please login again.",
+                    "error"
+                );
+
+                setTimeout(() => {
+                    window.location.href =
+                        "signin.html";
+                }, 1000);
+                return {
+                    success: false,
+                    message:
+                        "Unauthorized"
+                };
             }
-        );
-        if (response.status === 401 && retry) {
-            const newToken = await refreshAccessToken();
-            if (newToken) {
-                return apiRequest(url, options, false);
+
+            // parse json safely
+            let data = {};
+            try {
+                data =
+                    await response.json();
+            } catch {
+                data = {
+                    success: false,
+                    message:
+                        "Invalid server response"
+                };
             }
-            clearAuthData();
-            notify("Session expired. Please login again.", "error");
-            setTimeout(() => {
-                window.location.href = "signin.html";
-            }, 1000);
+
+            if (
+                !response.ok
+            ) {
+                throw new Error(
+                    data.message ||
+                    `Request failed (${response.status})`
+                );
+            }
+            return data;
+        } catch (error) {
+            console.error(
+                `API REQUEST ERROR (${url}):`,
+                error
+            );
             return {
                 success: false,
-                message: "Unauthorized"
+                message:
+                    error.message ||
+                    "Request failed"
             };
         }
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(
-                data.message || `Request failed (${response.status})`
-            );
-        }
-        return data;
-    } catch (error) {
-        console.error(`API request error (${url}):`, error);
-        return {
-            success: false,
-            message: error.message || "Request failed"
-        };
-    }
-};
+    };
 
 // dom helpers
-const $ = (selector, scope = document) =>
-    scope.querySelector(selector);
+const $ = (
+    selector,
+    scope = document
+) =>
+    scope.querySelector(
+        selector
+    );
 
-const $$ = (selector, scope = document) =>
-    scope.querySelectorAll(selector);
+const $$ = (
+    selector,
+    scope = document
+) =>
+    scope.querySelectorAll(
+        selector
+    );
 
 // price formatter
-const formatPrice = (price) => {
-    return `₹${parseFloat(price || 0).toFixed(2)}`;
+const formatPrice = (
+    price
+) => {
+    return `₹${parseFloat(
+        price || 0
+    ).toFixed(2)}`;
 };
 
 // image fallback
-const defaultImage = (url) => {
-    return url && url.trim()
+const defaultImage = (
+    url
+) => {
+    return (
+        url
+        &&
+        typeof url === "string"
+        &&
+        url.trim()
+    )
         ? url
         : "assets/images/default-product.png";
 };
 
-// safe array helpers
-const safeForEach = (arr, callback) => {
-    if (Array.isArray(arr)) {
-        arr.forEach(callback);
+// safe helpers
+const safeForEach = (
+    arr,
+    callback
+) => {
+    if (
+        Array.isArray(arr)
+    ) {
+        arr.forEach(
+            callback
+        );
     }
 };
 
-const safeMap = (arr, callback) => {
-    return Array.isArray(arr)
-        ? arr.map(callback)
+const safeMap = (
+    arr,
+    callback
+) => {
+    return Array.isArray(
+        arr
+    )
+        ? arr.map(
+            callback
+        )
         : [];
 };
 
 // cart helpers
-const getCart = () => getJSON("cart", []);
-const saveCart = (cart) => {
-    setJSON("cart", cart);
-};
-const getWishlist = () => getJSON("wishlist", []);
-const saveWishlist = (wishlist) => {
-    setJSON("wishlist", wishlist);
+const getCart = () =>
+    getJSON(
+        "cart",
+        []
+    );
+const saveCart = (
+    cart
+) => {
+    setJSON(
+        "cart",
+        Array.isArray(cart)
+            ? cart
+            : []
+    );
 };
 
-// global app utils
+const getWishlist = () =>
+    getJSON(
+        "wishlist",
+        []
+    );
+
+const saveWishlist = (
+    wishlist
+) => {
+    setJSON(
+        "wishlist",
+        Array.isArray(wishlist)
+            ? wishlist
+            : []
+    );
+};
+
+// app utils
 window.AppUtils = {
     CONFIG,
     notify,

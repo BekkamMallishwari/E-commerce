@@ -1,191 +1,344 @@
-// WISHLIST PAGE INITIALIZED
-// Shared helpers are now provided globally from utils.js
-let wishlist = getJSON("wishlist") || [];
-let cart = getJSON("cart") || [];
+// wishlist state
+let wishlist =
+    AppUtils.getWishlist();
+let cart =
+    AppUtils.getCart();
 
-// ELEMENTS
+// elements
 const elements = {
-    wishlistContainer: document.getElementById("wishlist-container"),
-    emptyWishlist: document.getElementById("empty-wishlist")
+    wishlistContainer:
+        document.getElementById(
+            "wishlist-container"
+        ),
+    emptyWishlist:
+        document.getElementById(
+            "empty-wishlist"
+        )
 };
 
-// RENDER WISHLIST
+// render wishlist
 function renderWishlist() {
-    if (!elements.wishlistContainer) return;
-    elements.wishlistContainer.innerHTML = "";
-
-    if (!Array.isArray(wishlist) || wishlist.length === 0) {
-        if (elements.emptyWishlist) {
+    if (
+        !elements.wishlistContainer
+    ) {
+        return;
+    }
+    elements.wishlistContainer.innerHTML =
+        "";
+    if (
+        !Array.isArray(wishlist)
+        ||
+        wishlist.length === 0
+    ) {
+        if (
+            elements.emptyWishlist
+        ) {
             elements.emptyWishlist.style.display =
                 "block";
         }
         return;
     }
 
-    if (elements.emptyWishlist) {
+    if (
+        elements.emptyWishlist
+    ) {
         elements.emptyWishlist.style.display =
             "none";
     }
+    const fragment =
+        document.createDocumentFragment();
 
-    wishlist.forEach((product, index) => {
-        const card = document.createElement("div");
-        card.classList.add("wishlist-card");
-        card.innerHTML = `
-            <img
-                src="${product.image || 'images/default-product.png'}"
-                alt="${product.name || 'Product'}"
-            >
-            <div class="wishlist-content">
-                <span>${product.brand || "Brand"}</span>
-                <h4>
-                    ${product.name || "Product"}
-                </h4>
-                <p class="wishlist-price">
-                    ₹${parseFloat(
-                        product.price || 0
-                    ).toFixed(2)}
-                </p>
-                <div class="wishlist-buttons">
-                    <button class="add-cart-btn" data-index="${index}">
-                        <i class="fas fa-shopping-cart"></i> Add To Cart
-                    </button>
-                    <button class="remove-btn" data-index="${index}">
-                        <i class="fas fa-trash-alt"></i> Remove
-                    </button>
-                </div>
-            </div>
-        `;
+    wishlist.forEach(
+        (product, index) => {
+            const card =
+                document.createElement(
+                    "div"
+                );
 
-        // Navigate to product page
-        const productInfo = card.querySelector("img, h4");
-        if(productInfo){
-            productInfo.addEventListener("click", () => {
-                setJSON("selectedProduct", product);
-                window.location.href = "product.html";
-            });
+            card.classList.add(
+                "wishlist-card"
+            );
+
+            card.innerHTML =
+                `
+                    <img
+                        src="${AppUtils.defaultImage(product.image || product.img)}"
+                        alt="${product.name || "Product"}"
+                        loading="lazy"
+                    >
+                    <div class="wishlist-content">
+                        <span>
+                            ${product.brand || "Brand"}
+                        </span>
+                        <h4>
+                            ${product.name || "Product"}
+                        </h4>
+                        <p class="wishlist-price">
+                            ${AppUtils.formatPrice(product.price || 0)}
+                        </p>
+                        <div class="wishlist-buttons">
+                            <button
+                                class="add-cart-btn"
+                                data-index="${index}"
+                            >
+                                <i class="fas fa-shopping-cart"></i>
+                                Add To Cart
+                            </button>
+                            <button
+                                class="remove-btn"
+                                data-index="${index}"
+                            >
+                                <i class="fas fa-trash-alt"></i>
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+            // product navigation
+            const clickable =
+                card.querySelectorAll(
+                    "img, h4"
+                );
+
+            clickable.forEach(
+                (element) => {
+                    element.addEventListener(
+                        "click",
+                        () => {
+                            if (
+                                product.id
+                            ) {
+                                window.location.href =
+                                    `product.html?id=${product.id}`;
+                            }
+                        }
+                    );
+                }
+            );
+            fragment.appendChild(
+                card
+            );
         }
-        elements.wishlistContainer.appendChild(card);
-    });
+    );
+    elements.wishlistContainer.appendChild(
+        fragment
+    );
     attachWishlistEventListeners();
 }
 
-// WISHLIST EVENT LISTENERS
+// wishlist listeners
 function attachWishlistEventListeners() {
-    document.querySelectorAll(".add-cart-btn").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            e.stopPropagation();
-            const button =
-                e.target.closest("button");
+    document
+        .querySelectorAll(
+            ".add-cart-btn"
+        )
+        .forEach((btn) => {
+            btn.addEventListener(
+                "click",
+                async (event) => {
+                    event.stopPropagation();
+                    const button =
+                        event.target.closest(
+                            "button"
+                        );
 
-            if (!button) return;
+                    if (
+                        !button
+                    ) {
+                        return;
+                    }
 
-            const index =
-                parseInt(
-                    button.dataset.index
-                );
-            await addToCartFromWishlist(index);
+                    const index =
+                        parseInt(
+                            button.dataset.index,
+                            10
+                        );
+
+                    await addToCartFromWishlist(
+                        index
+                    );
+                }
+            );
         });
-    });
 
-    document.querySelectorAll(".remove-btn").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            e.stopPropagation();
-            const button =
-                e.target.closest("button");
+    document
+        .querySelectorAll(
+            ".remove-btn"
+        )
+        .forEach((btn) => {
+            btn.addEventListener(
+                "click",
+                async (event) => {
+                    event.stopPropagation();
+                    const button =
+                        event.target.closest(
+                            "button"
+                        );
 
-            if (!button) return;
+                    if (
+                        !button
+                    ) {
+                        return;
+                    }
 
-            const index =
-                parseInt(
-                    button.dataset.index
-                );
-            await removeWishlist(index);
+                    const index =
+                        parseInt(
+                            button.dataset.index,
+                            10
+                        );
+
+                    await removeWishlist(
+                        index
+                    );
+                }
+            );
         });
-    });
 }
 
-// REMOVE WISHLIST ITEM
-async function removeWishlist(index) {
-    if (!wishlist[index]) return;
+// remove wishlist item
+async function removeWishlist(
+    index
+) {
+    if (
+        !wishlist[index]
+    ) {
+        return;
+    }
+
     const product =
         wishlist[index];
-    wishlist.splice(index, 1);
-    setJSON("wishlist", wishlist);
-    renderWishlist();
 
-    const token = localStorage.getItem("token");
-    if(token){
-        try{
-            const data = await apiRequest("/wishlist/remove", {
-                method: "POST",
-                body: JSON.stringify({
-                    productId: product.id
-                })
-            });
-            if(!data.success){
-                console.warn(
-                    "Backend wishlist remove failed:",
-                    data.message
-                );
-            }
-        } catch(err){
-            console.error("Error removing wishlist item:", err);
+    wishlist.splice(
+        index,
+        1
+    );
+
+    AppUtils.saveWishlist(
+        wishlist
+    );
+
+    renderWishlist();
+    AppUtils.notify(
+        "Removed from wishlist",
+        "success"
+    );
+
+    const token =
+        AppUtils.getToken();
+
+    if (
+        token
+    ) {
+        try {
+            await AppUtils.apiRequest(
+                "/wishlist/remove",
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify({
+                            productId:
+                                product.id
+                        })
+                }
+            );
+
+        } catch (error) {
+            console.error(
+                "WISHLIST REMOVE ERROR:",
+                error
+            );
         }
     }
 }
 
-// ADD TO CART FROM WISHLIST
-async function addToCartFromWishlist(index) {
-    if (!wishlist[index]) return;
+// add to cart
+async function addToCartFromWishlist(
+    index
+) {
+    if (
+        !wishlist[index]
+    ) {
+        return;
+    }
+
     const product =
         wishlist[index];
 
     const item = {
-        id: product.id,
-        name: product.name,
+        id:
+            product.id,
+        name:
+            product.name,
         price:
-            parseFloat(product.price) || 0,
-        img: product.image,
+            parseFloat(
+                product.price
+            ) || 0,
+        img:
+            product.image ||
+            product.img,
         qty: 1
     };
 
-    const existingIndex = cart.findIndex(
-        p => p.id === item.id
-    );
+    // prevent duplicates
+    const existingIndex =
+        cart.findIndex(
+            (p) =>
+                p.id === item.id
+        );
 
-    if(existingIndex >= 0){
-        cart[existingIndex].qty += 1;
+    if (
+        existingIndex >= 0
+    ) {
+        cart[
+            existingIndex
+        ].qty += 1;
+
     } else {
-        cart.push(item);
+        cart.push(
+            item
+        );
     }
 
-    setJSON("cart", cart);
-    notify(
+    AppUtils.saveCart(
+        cart
+    );
+
+    AppUtils.notify(
         "Added to cart 🛍️",
         "success"
     );
 
-    // POST to backend if logged in
-    const token = localStorage.getItem("token");
-    if(token){
-        try{
-            const data = await apiRequest("/cart/add", {
-                method: "POST",
-                body: JSON.stringify(item)
-            });
-            if(!data.success){
-                console.warn(
-                    "Backend cart add failed:",
-                    data.message
-                );
-            }
-        } catch(err){
-            console.error("Error adding item to cart:", err);
+    const token =
+        AppUtils.getToken();
+
+    if (
+        token
+    ) {
+        try {
+            await AppUtils.apiRequest(
+                "/cart/add",
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify(
+                            item
+                        )
+                }
+            );
+        } catch (error) {
+            console.error(
+                "CART ADD ERROR:",
+                error
+            );
         }
     }
 }
 
-// INITIALIZATION
-document.addEventListener("DOMContentLoaded", () => {
-    renderWishlist();
-});
+// init
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+        renderWishlist();
+    }
+);

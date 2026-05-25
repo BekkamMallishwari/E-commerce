@@ -6,15 +6,71 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-    <title>Profile | AnthropicBots E-Commerce</title>
 
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
-    <link rel="stylesheet" href="styles/profile.css">
+    <!-- SEO -->
+    <meta
+        name="description"
+        content="Manage your AnthropicBots E-Commerce profile, account details, and preferences."
+    >
+
+    <meta
+        name="keywords"
+        content="profile, ecommerce account, user profile, account settings"
+    >
+
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
+
+    <title>
+        Profile | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/profile.css"
+    >
+
+    <!-- Icons -->
     <link
         rel="stylesheet"
         href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
@@ -22,27 +78,33 @@
 </head>
 
 <body>
-
+    <!-- Navbar -->
     <div id="navbar"></div>
 
     <!-- Profile Header -->
     <section id="profile-header">
-        <h2>My Profile</h2>
+        <h2>
+            My Profile
+        </h2>
         <p>
             Manage your account information
         </p>
     </section>
 
     <!-- Profile Section -->
-    <section id="profile-page" class="section-p1">
+    <section
+        id="profile-page"
+        class="section-p1"
+    >
         <div class="profile-container">
-            <!-- Left -->
+            <!-- Sidebar -->
             <div class="profile-sidebar">
                 <div class="avatar-wrapper">
                     <img
                         id="profile-preview"
                         src="assets/images/user.png"
                         alt="Profile Avatar"
+                        loading="lazy"
                     >
                     <label
                         for="avatar-input"
@@ -64,43 +126,61 @@
                 </p>
             </div>
 
-            <!-- Right -->
+            <!-- Profile Content -->
             <div class="profile-content">
                 <form id="profile-form">
                     <div class="form-group">
-                        <label>Full Name</label>
+                        <label for="profile-name">
+                            Full Name
+                        </label>
                         <input
                             type="text"
                             id="profile-name"
                             placeholder="Full Name"
+                            autocomplete="name"
                         >
                     </div>
+
                     <div class="form-group">
-                        <label>Email Address</label>
+                        <label for="profile-email">
+                            Email Address
+                        </label>
                         <input
                             type="email"
                             id="profile-email"
                             placeholder="Email Address"
+                            autocomplete="email"
                             disabled
                         >
                     </div>
+
                     <div class="form-group">
-                        <label>Phone Number</label>
+                        <label for="profile-phone">
+                            Phone Number
+                        </label>
                         <input
-                            type="text"
+                            type="tel"
                             id="profile-phone"
                             placeholder="Phone Number"
+                            autocomplete="tel"
                         >
                     </div>
+
                     <div class="form-group">
-                        <label>Address</label>
+                        <label for="profile-address">
+                            Address
+                        </label>
                         <textarea
                             id="profile-address"
                             placeholder="Address"
+                            autocomplete="street-address"
                         ></textarea>
                     </div>
+
                     <div class="form-group">
-                        <label>Bio</label>
+                        <label for="profile-bio">
+                            Bio
+                        </label>
                         <textarea
                             id="profile-bio"
                             placeholder="Short Bio"
@@ -114,14 +194,40 @@
         </div>
     </section>
 
+    <!-- Footer -->
     <div id="footer"></div>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="scripts/components.js"></script>
-    <script src="scripts/auth.js"></script>
-    <script src="scripts/profile.js"></script>
+    <!-- Core Scripts -->
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Profile Script -->
+    <script
+        defer
+        src="scripts/profile.js"
+    ></script>
 
 </body>
 </html>

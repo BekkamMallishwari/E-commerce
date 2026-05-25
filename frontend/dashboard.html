@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -8,24 +10,84 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Dashboard | AnthropicBots E-Commerce</title>
+    <!-- SEO -->
 
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
+    <meta
+        name="description"
+        content="Manage your profile, wishlist, orders, and cart from your personal dashboard."
+    >
 
-    <link rel="stylesheet" href="styles/dashboard.css">
+    <meta
+        name="keywords"
+        content="dashboard, ecommerce, orders, wishlist, profile"
+    >
+
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
+
+    <title>
+        Dashboard | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/dashboard.css"
+    >
+
+    <!-- Icons -->
 
     <link
         rel="stylesheet"
         href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
     >
+
 </head>
 
 <body>
+
+    <!-- Navbar -->
 
     <div id="navbar"></div>
 
@@ -33,17 +95,26 @@
 
     <section id="dashboard-header">
 
-        <h2>User Dashboard</h2>
+        <h2>
+
+            User Dashboard
+
+        </h2>
 
         <p>
+
             Manage your account, wishlist, orders, and profile
+
         </p>
 
     </section>
 
     <!-- Dashboard -->
 
-    <section id="dashboard" class="section-p1">
+    <section
+        id="dashboard"
+        class="section-p1"
+    >
 
         <!-- Sidebar -->
 
@@ -57,21 +128,33 @@
                         id="profile-avatar"
                         src="assets/images/user.png"
                         alt="User Avatar"
+                        loading="lazy"
                     >
 
                 </div>
 
-                <h3 id="user-name">Guest User</h3>
+                <h3 id="user-name">
+
+                    Guest User
+
+                </h3>
 
                 <p id="user-email">
+
                     user@example.com
+
                 </p>
 
             </div>
 
+            <!-- Menu -->
+
             <ul class="dashboard-menu">
 
-                <li class="active-tab" data-tab="overview">
+                <li
+                    class="active-tab"
+                    data-tab="overview"
+                >
 
                     <i class="fas fa-home"></i>
 
@@ -115,13 +198,16 @@
 
         </div>
 
-        <!-- Main Content -->
+        <!-- Content -->
 
         <div class="dashboard-content">
 
             <!-- Overview -->
 
-            <div class="dashboard-tab active" id="overview">
+            <div
+                class="dashboard-tab active"
+                id="overview"
+            >
 
                 <div class="stats-grid">
 
@@ -129,9 +215,17 @@
 
                         <i class="fas fa-heart"></i>
 
-                        <h3 id="wishlist-count">0</h3>
+                        <h3 id="wishlist-count">
 
-                        <p>Wishlist Items</p>
+                            0
+
+                        </h3>
+
+                        <p>
+
+                            Wishlist Items
+
+                        </p>
 
                     </div>
 
@@ -139,9 +233,17 @@
 
                         <i class="fas fa-shopping-cart"></i>
 
-                        <h3 id="cart-count-dashboard">0</h3>
+                        <h3 id="cart-count-dashboard">
 
-                        <p>Cart Items</p>
+                            0
+
+                        </h3>
+
+                        <p>
+
+                            Cart Items
+
+                        </p>
 
                     </div>
 
@@ -149,9 +251,17 @@
 
                         <i class="fas fa-box"></i>
 
-                        <h3 id="orders-count">0</h3>
+                        <h3 id="orders-count">
 
-                        <p>Total Orders</p>
+                            0
+
+                        </h3>
+
+                        <p>
+
+                            Total Orders
+
+                        </p>
 
                     </div>
 
@@ -161,9 +271,16 @@
 
             <!-- Wishlist -->
 
-            <div class="dashboard-tab" id="wishlist">
+            <div
+                class="dashboard-tab"
+                id="wishlist"
+            >
 
-                <h2>Wishlist</h2>
+                <h2>
+
+                    Wishlist
+
+                </h2>
 
                 <div id="wishlist-items"></div>
 
@@ -171,9 +288,16 @@
 
             <!-- Orders -->
 
-            <div class="dashboard-tab" id="orders">
+            <div
+                class="dashboard-tab"
+                id="orders"
+            >
 
-                <h2>Order History</h2>
+                <h2>
+
+                    Order History
+
+                </h2>
 
                 <div id="orders-list"></div>
 
@@ -181,9 +305,16 @@
 
             <!-- Cart -->
 
-            <div class="dashboard-tab" id="cart">
+            <div
+                class="dashboard-tab"
+                id="cart"
+            >
 
-                <h2>Saved Cart</h2>
+                <h2>
+
+                    Saved Cart
+
+                </h2>
 
                 <div id="saved-cart-items"></div>
 
@@ -191,9 +322,16 @@
 
             <!-- Settings -->
 
-            <div class="dashboard-tab" id="settings">
+            <div
+                class="dashboard-tab"
+                id="settings"
+            >
 
-                <h2>Account Settings</h2>
+                <h2>
+
+                    Account Settings
+
+                </h2>
 
                 <form id="settings-form">
 
@@ -201,12 +339,14 @@
                         type="text"
                         id="settings-name"
                         placeholder="Full Name"
+                        required
                     >
 
                     <input
                         type="email"
                         id="settings-email"
                         placeholder="Email Address"
+                        required
                     >
 
                     <button type="submit">
@@ -223,19 +363,66 @@
 
     </section>
 
+    <!-- Footer -->
+
     <div id="footer"></div>
 
-    <!-- Firebase -->
+    <!-- Core Scripts -->
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
 
-    <script src="scripts/components.js"></script>
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
 
-    <script src="scripts/auth.js"></script>
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
 
-    <script src="scripts/dashboard.js"></script>
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Dashboard Modules -->
+
+    <script
+        defer
+        src="scripts/dashboard-overview.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/dashboard-wishlist.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/dashboard-orders.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/dashboard-settings.js"
+    ></script>
+
+    <!-- Dashboard Bootstrap -->
+
+    <script
+        defer
+        src="scripts/dashboard.js"
+    ></script>
 
 </body>
+
 </html>

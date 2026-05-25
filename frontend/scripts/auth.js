@@ -1,235 +1,469 @@
-// auth page elements
+// auth elements
 const elements = {
-    signupForm: document.getElementById("signup-form"),
-    signinForm: document.getElementById("signin-form"),
+    signupForm:
+        document.getElementById(
+            "signup-form"
+        ),
 
-    signupName: document.getElementById("signup-name"),
-    signupEmail: document.getElementById("signup-email"),
-    signupPassword: document.getElementById("signup-password"),
+    signinForm:
+        document.getElementById(
+            "signin-form"
+        ),
 
-    signinEmail: document.getElementById("signin-email"),
-    signinPassword: document.getElementById("signin-password"),
+    signupName:
+        document.getElementById(
+            "signup-name"
+        ),
 
-    authLink: document.getElementById("auth-link"),
-    dropdown: document.getElementById("profile-dropdown"),
-    logoutBtn: document.getElementById("logout-btn")
+    signupEmail:
+        document.getElementById(
+            "signup-email"
+        ),
+
+    signupPassword:
+        document.getElementById(
+            "signup-password"
+        ),
+
+    signinEmail:
+        document.getElementById(
+            "signin-email"
+        ),
+
+    signinPassword:
+        document.getElementById(
+            "signin-password"
+        ),
+
+    authLink:
+        document.getElementById(
+            "auth-link"
+        ),
+
+    dropdown:
+        document.getElementById(
+            "profile-dropdown"
+        ),
+
+    logoutBtn:
+        document.getElementById(
+            "logout-btn"
+        )
 };
 
+// validation
 const emailRegex =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-// BACKEND AUTH FUNCTIONS
-// signup user
-const signupUser = async (name, email, password) => {
-    return await AppUtils.apiRequest("/auth/signup", {
-        method: "POST",
-        body: JSON.stringify({
-            name,
-            email,
-            password
-        })
-    });
-};
+// auth api
+async function signupUser(
+    name,
+    email,
+    password
+) {
+    return await AppUtils.apiRequest(
+        "/auth/signup",
+        {
+            method: "POST",
+            body:
+                JSON.stringify({
+                    name,
+                    email,
+                    password
+                })
+        }
+    );
+}
 
-// login user
-const loginUser = async (email, password) => {
-    return await AppUtils.apiRequest("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-            email,
-            password
-        })
-    });
-};
+async function loginUser(
+    email,
+    password
+) {
+    return await AppUtils.apiRequest(
+        "/auth/login",
+        {
+            method: "POST",
+            body:
+                JSON.stringify({
+                    email,
+                    password
+                })
+        }
+    );
+}
 
-function toggleFormLoading(button, isLoading, loadingText = "Please wait...") {
-    if(!button) return;
+// loading state
+function toggleFormLoading(
+    button,
+    isLoading,
+    loadingText = "Please wait..."
+) {
+    if (!button) {
+        return;
+    }
 
-    if(isLoading){
-        button.dataset.originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = loadingText;
+    if (isLoading) {
+        button.dataset.originalText =
+            button.innerHTML;
+
+        button.disabled =
+            true;
+
+        button.innerHTML =
+            loadingText;
+
     } else {
-        button.disabled = false;
-        button.innerHTML = button.dataset.originalText || "Submit";
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            button.dataset.originalText ||
+            "Submit";
     }
 }
 
-// clear auth/session data
-const clearAuthSession = () => {
+// save auth
+function saveAuthSession(
+    response
+) {
+    if (
+        !response
+    ) {
+        return;
+    }
+
+    localStorage.setItem(
+        "token",
+        response.accessToken || ""
+    );
+
+    localStorage.setItem(
+        "refreshToken",
+        response.refreshToken || ""
+    );
+
+    AppUtils.setJSON(
+        "user",
+        response.user || {}
+    );
+}
+
+// clear auth
+function clearAuthSession() {
     AppUtils.clearAuthData();
+    localStorage.removeItem(
+        "cart"
+    );
+    localStorage.removeItem(
+        "wishlist"
+    );
+}
 
-    localStorage.removeItem("cart");
-    localStorage.removeItem("wishlist");
-};
+// signup
+if (
+    elements.signupForm
+) {
+    elements.signupForm.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+            const submitBtn =
+                elements.signupForm.querySelector(
+                    'button[type="submit"]'
+                );
 
-// EMAIL SIGNUP
-if(elements.signupForm){
-    elements.signupForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if(
-            e.submitter?.disabled
-        ){
-            return;
-        }
-        const name = elements.signupName.value.trim();
-        const email = elements.signupEmail.value.trim();
-        const password = elements.signupPassword.value;
-        if (!name) {
-            AppUtils.notify("Name is required", "error");
-            return;
-        }
-
-        if (!emailRegex.test(email)) {
-            AppUtils.notify("Enter a valid email", "error");
-            return;
-        }
-
-        if (!passwordRegex.test(password)) {
-            AppUtils.notify(
-                "Password must contain uppercase, lowercase, number and 8 characters",
-                "error"
-            );
-            return;
-        }
-        const submitBtn = elements.signupForm.querySelector("button[type='submit']");
-        toggleFormLoading(submitBtn, true, "Creating Account...");
-        try {
-            const response = await signupUser(name, email, password);
-            if(response.success){
+            if (
+                submitBtn?.disabled
+            ) {
+                return;
+            }
+            const name =
+                elements.signupName.value.trim();
+            const email =
+                elements.signupEmail.value.trim();
+            const password =
+                elements.signupPassword.value;
+            if (
+                !name
+            ) {
                 AppUtils.notify(
-                    "Account Created Successfully!",
+                    "Name is required.",
+                    "error"
+                );
+                return;
+            }
+
+            if (
+                !emailRegex.test(email)
+            ) {
+                AppUtils.notify(
+                    "Enter a valid email.",
+                    "error"
+                );
+                return;
+            }
+
+            if (
+                !passwordRegex.test(password)
+            ) {
+                AppUtils.notify(
+                    "Password must contain uppercase, lowercase, number and 8 characters.",
+                    "error"
+                );
+                return;
+            }
+
+            toggleFormLoading(
+                submitBtn,
+                true,
+                "Creating Account..."
+            );
+
+            try {
+                const response =
+                    await signupUser(
+                        name,
+                        email,
+                        password
+                    );
+
+                if (
+                    response.success
+                ) {
+                    AppUtils.notify(
+                        "Account created successfully!",
+                        "success"
+                    );
+
+                    setTimeout(() => {
+                        window.location.href =
+                            "signin.html";
+
+                    }, 1000);
+                } else {
+                    AppUtils.notify(
+                        response.message ||
+                        "Signup failed.",
+                        "error"
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "SIGNUP ERROR:",
+                    error
+                );
+
+                AppUtils.notify(
+                    "Signup failed. Please try again.",
+                    "error"
+                );
+            } finally {
+                toggleFormLoading(
+                    submitBtn,
+                    false
+                );
+            }
+        }
+    );
+}
+
+// signin
+if (
+    elements.signinForm
+) {
+    elements.signinForm.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+            const submitBtn =
+                elements.signinForm.querySelector(
+                    'button[type="submit"]'
+                );
+
+            if (
+                submitBtn?.disabled
+            ) {
+                return;
+            }
+            const email =
+                elements.signinEmail.value.trim();
+
+            const password =
+                elements.signinPassword.value.trim();
+
+            if (
+                !emailRegex.test(email)
+            ) {
+                AppUtils.notify(
+                    "Enter a valid email.",
+                    "error"
+                );
+                return;
+            }
+
+            if (
+                !password
+            ) {
+                AppUtils.notify(
+                    "Password is required.",
+                    "error"
+                );
+                return;
+            }
+
+            toggleFormLoading(
+                submitBtn,
+                true,
+                "Signing In..."
+            );
+
+            try {
+                const response =
+                    await loginUser(
+                        email,
+                        password
+                    );
+
+                if (
+                    response.success
+                ) {
+                    saveAuthSession(
+                        response
+                    );
+
+                    AppUtils.notify(
+                        "Login successful!",
+                        "success"
+                    );
+
+                    const redirect =
+                        response.user?.role === "admin"
+                            ? "admin.html"
+                            : "index.html";
+
+                    setTimeout(() => {
+                        window.location.href =
+                            redirect;
+                    }, 1000);
+                } else {
+                    AppUtils.notify(
+                        response.message ||
+                        "Login failed.",
+                        "error"
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "LOGIN ERROR:",
+                    error
+                );
+                AppUtils.notify(
+                    "Login failed. Please try again.",
+                    "error"
+                );
+            } finally {
+                toggleFormLoading(
+                    submitBtn,
+                    false
+                );
+            }
+        }
+    );
+}
+
+// auth ui
+const token =
+    AppUtils.getToken();
+
+if (
+    elements.authLink
+) {
+    if (
+        token
+    ) {
+        elements.authLink.innerHTML =
+            `<i class="fas fa-user"></i>`;
+        elements.authLink.href =
+            "#";
+
+        elements.authLink.classList.add(
+            "profile-active"
+        );
+
+        // open dropdown
+        elements.authLink.addEventListener(
+            "click",
+            (event) => {
+                event.preventDefault();
+                elements.dropdown?.classList.toggle(
+                    "active"
+                );
+            }
+        );
+
+        // logout
+        elements.logoutBtn?.addEventListener(
+            "click",
+            () => {
+                clearAuthSession();
+                elements.dropdown?.classList.remove(
+                    "active"
+                );
+
+                AppUtils.notify(
+                    "Logged out successfully!",
                     "success"
                 );
-                window.location.href = "signin.html";
-            } else {
-                AppUtils.notify(response.message, "error");
-            }
-        } catch(error){
-            console.error(error);
-            AppUtils.notify("Signup failed. Please try again.", "error");
-        } finally {
-            toggleFormLoading(submitBtn, false);
-        }
-    });
-}
 
-// EMAIL SIGNIN
-if(elements.signinForm){
-    elements.signinForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if(
-            e.submitter?.disabled
-        ){
-            return;
-        }
-        const email = elements.signinEmail.value.trim();
-        const password = elements.signinPassword.value.trim();
-        if (!emailRegex.test(email)) {
-            AppUtils.notify(
-                "Enter a valid email",
-                "error"
-            );
-            return;
-        }
-        if (!password) {
-            AppUtils.notify(
-                "Password is required",
-                "error"
-            );
-            return;
-        }
-        const submitBtn = elements.signinForm.querySelector("button[type='submit']");
-        toggleFormLoading(submitBtn, true, "Signing In...");
-
-        try {
-            const response = await loginUser(email, password);
-            if(response.success){
-                // Store auth data
-                localStorage.setItem("token", response.accessToken);
-                localStorage.setItem(
-                    "refreshToken",
-                    response.refreshToken
-                );
-                AppUtils.setJSON("user", response.user);
-
-                AppUtils.notify("Login Successful!", "success");
-
-                window.location.href = "index.html";
-            } else {
-                AppUtils.notify(response.message, "error");
-            }
-        } catch(error){
-            console.error(error);
-            AppUtils.notify("Login failed. Please try again.", "error");
-        } finally {
-            toggleFormLoading(submitBtn, false);
-        }
-    });
-}
-
-// current auth token
-const token = AppUtils.getToken();
-
-if(elements.authLink){
-    if(token){
-        elements.authLink.innerHTML = `<i class="fas fa-user"></i>`;
-        elements.authLink.href = "#";
-        elements.authLink.classList.add("profile-active");
-
-        // Toggle Dropdown
-        elements.authLink.addEventListener("click", (e) => {
-            e.preventDefault();
-            if(elements.dropdown){
-                elements.dropdown.classList.toggle("active");
-            }
-        });
-
-        // Logout
-        if(elements.logoutBtn){
-            elements.logoutBtn.addEventListener("click", () => {
-                clearAuthSession();
-                if(elements.dropdown){
-                    elements.dropdown.classList.remove("active");
-                }
-                AppUtils.notify("Logged out successfully", "success");
                 setTimeout(() => {
-                    window.location.href = "index.html";
-                }, 800);
-            });
-        }
+                    window.location.href =
+                        "index.html";
+                }, 1000);
+            }
+        );
 
-        // Close Dropdown on outside click
-        document.addEventListener("click", (e) => {
-            if(!e.target.closest(".profile-wrapper")){
-                if(elements.dropdown){
-                    elements.dropdown.classList.remove("active");
+        // outside click
+        document.addEventListener(
+            "click",
+            (event) => {
+                if (
+                    !event.target.closest(
+                        ".profile-wrapper"
+                    )
+                ) {
+                    elements.dropdown?.classList.remove(
+                        "active"
+                    );
                 }
             }
-        });
+        );
+
+        // escape close
         document.addEventListener(
             "keydown",
-            (e) => {
-                if(
-                    e.key === "Escape" &&
-                    elements.dropdown
-                ){        
-                    elements.dropdown.classList.remove(
+            (event) => {
+                if (
+                    event.key === "Escape"
+                ) {
+                    elements.dropdown?.classList.remove(
                         "active"
                     );
                 }
             }
         );
     } else {
-        elements.authLink.innerHTML = "Sign In";
-        elements.authLink.href = "signin.html";
-        elements.authLink.classList.remove("profile-active");
-
-        if(elements.dropdown){
-            elements.dropdown.classList.remove("active");
-        }
+        elements.authLink.innerHTML =
+            "Sign In";
+        elements.authLink.href =
+            "signin.html";
+        elements.authLink.classList.remove(
+            "profile-active"
+        );
+        elements.dropdown?.classList.remove(
+            "active"
+        );
     }
 }

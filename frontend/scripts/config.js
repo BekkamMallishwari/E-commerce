@@ -1,10 +1,11 @@
 // environment detection
+const hostname =
+    window.location.hostname;
+
 const isLocalhost =
-    window.location.hostname ===
-    "localhost"
+    hostname === "localhost"
     ||
-    window.location.hostname ===
-    "127.0.0.1";
+    hostname === "127.0.0.1";
 
 // frontend config
 const CONFIG = {
@@ -44,6 +45,9 @@ const CONFIG = {
         TOKEN:
             "token",
 
+        REFRESH_TOKEN:
+            "refreshToken",
+
         USER:
             "user",
 
@@ -57,6 +61,21 @@ Object.freeze(
     CONFIG
 );
 
+Object.freeze(
+    CONFIG.STORAGE_KEYS
+);
+
 // expose globally
 window.CONFIG =
     CONFIG;
+
+// debug info
+console.log(
+    `%c${CONFIG.APP_NAME} v${CONFIG.APP_VERSION}`,
+    "color:#088178;font-weight:bold;"
+);
+
+console.log(
+    "API BASE:",
+    CONFIG.API_BASE
+);

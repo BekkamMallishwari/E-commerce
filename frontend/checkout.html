@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -8,24 +10,84 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Checkout | AnthropicBots E-Commerce</title>
+    <!-- SEO -->
 
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
+    <meta
+        name="description"
+        content="Securely complete your order with multiple payment methods and seamless checkout experience."
+    >
 
-    <link rel="stylesheet" href="styles/checkout.css">
+    <meta
+        name="keywords"
+        content="checkout, payment, ecommerce checkout, online shopping"
+    >
+
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
+
+    <title>
+        Checkout | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/checkout.css"
+    >
+
+    <!-- Icons -->
 
     <link
         rel="stylesheet"
         href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
     >
+
 </head>
 
 <body>
+
+    <!-- Navbar -->
 
     <div id="navbar"></div>
 
@@ -33,25 +95,40 @@
 
     <section id="checkout-header">
 
-        <h2>Checkout</h2>
+        <h2>
+
+            Checkout
+
+        </h2>
 
         <p>
+
             Complete your order securely
+
         </p>
 
     </section>
 
-    <!-- Checkout Section -->
+    <!-- Checkout -->
 
-    <section id="checkout-page" class="section-p1">
+    <section
+        id="checkout-page"
+        class="section-p1"
+    >
 
-        <!-- Billing Form -->
+        <!-- Billing -->
 
         <div class="checkout-form-container">
 
-            <h2>Billing Information</h2>
+            <h2>
+
+                Billing Information
+
+            </h2>
 
             <form id="checkout-form">
+
+                <!-- Row -->
 
                 <div class="form-row">
 
@@ -71,10 +148,12 @@
 
                 </div>
 
+                <!-- Row -->
+
                 <div class="form-row">
 
                     <input
-                        type="text"
+                        type="tel"
                         id="phone"
                         placeholder="Phone Number"
                         required
@@ -88,6 +167,8 @@
                     >
 
                 </div>
+
+                <!-- Row -->
 
                 <div class="form-row">
 
@@ -107,6 +188,8 @@
 
                 </div>
 
+                <!-- Address -->
+
                 <textarea
                     id="address"
                     placeholder="Full Address"
@@ -115,7 +198,11 @@
 
                 <!-- Payment -->
 
-                <h3>Payment Method</h3>
+                <h3>
+
+                    Payment Method
+
+                </h3>
 
                 <div class="payment-options">
 
@@ -124,7 +211,7 @@
                         <input
                             type="radio"
                             name="payment"
-                            value="Card"
+                            value="card"
                             checked
                         >
 
@@ -137,7 +224,7 @@
                         <input
                             type="radio"
                             name="payment"
-                            value="UPI"
+                            value="upi"
                         >
 
                         UPI Payment
@@ -149,7 +236,7 @@
                         <input
                             type="radio"
                             name="payment"
-                            value="COD"
+                            value="cod"
                         >
 
                         Cash On Delivery
@@ -158,7 +245,7 @@
 
                 </div>
 
-                <!-- Card Info -->
+                <!-- Card -->
 
                 <div id="card-details">
 
@@ -166,28 +253,27 @@
                         type="text"
                         id="card-number"
                         placeholder="Card Number"
-                        required
                     >
-                                
+
                     <div class="form-row">
-                    
+
                         <input
                             type="text"
                             id="expiry"
                             placeholder="MM/YY"
-                            required
                         >
-                    
+
                         <input
-                            type="text"
+                            type="password"
                             id="cvv"
                             placeholder="CVV"
-                            required
                         >
-                    
+
                     </div>
-                
+
                 </div>
+
+                <!-- Submit -->
 
                 <button type="submit">
 
@@ -203,69 +289,120 @@
 
         <div class="checkout-summary">
 
-            <h2>Order Summary</h2>
+            <h2>
+
+                Order Summary
+
+            </h2>
 
             <div id="checkout-items"></div>
 
             <div class="summary-row">
 
-                <span>Subtotal</span>
+                <span>
+
+                    Subtotal
+
+                </span>
 
                 <span id="checkout-subtotal">
+
                     ₹0
+
                 </span>
 
             </div>
 
             <div class="summary-row">
 
-                <span>Tax (18%)</span>
+                <span>
+
+                    Tax (18%)
+
+                </span>
 
                 <span id="checkout-tax">
+
                     ₹0
+
                 </span>
 
             </div>
 
             <div class="summary-row">
 
-                <span>Shipping</span>
+                <span>
+
+                    Shipping
+
+                </span>
 
                 <span id="checkout-shipping">
-                
+
                     Free
-                
+
                 </span>
-            
+
             </div>
 
             <div class="summary-row total">
-            
-                <span>Total</span>
-            
-                <span id="checkout-total">
-                    ₹0
+
+                <span>
+
+                    Total
+
                 </span>
-            
+
+                <span id="checkout-total">
+
+                    ₹0
+
+                </span>
+
             </div>
 
         </div>
 
     </section>
 
+    <!-- Footer -->
+
     <div id="footer"></div>
 
-    <!-- Firebase -->
+    <!-- Core Scripts -->
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
 
-    <script src="scripts/components.js"></script>
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
 
-    <script src="scripts/auth.js"></script>
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
 
-    <script src="scripts/checkout.js"></script>
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Checkout Script -->
+
+    <script
+        defer
+        src="scripts/checkout.js"
+    ></script>
 
 </body>
+
 </html>

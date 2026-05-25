@@ -2,7 +2,7 @@ console.log(
     "Product page loaded successfully!"
 );
 
-// product page elements
+// PRODUCT PAGE ELEMENTS
 const elements = {
     mainImage:
         document.getElementById(
@@ -90,20 +90,11 @@ const elements = {
         )
 };
 
-// expose globally
-Object.entries(
-    elements
-).forEach(
-    ([key, value]) => {
-        window[key] = value;
-    }
-);
-
-// current product state
-window.currentProductData =
+// PRODUCT STATE
+let currentProductData =
     null;
 
-// product id
+// PRODUCT ID
 const urlParams =
     new URLSearchParams(
         window.location.search
@@ -111,16 +102,21 @@ const urlParams =
 
 const productId =
     parseInt(
-        urlParams.get("id")
+        urlParams.get("id"),
+        10
     );
 
 // invalid id fallback
-if (!productId) {
+if (
+    Number.isNaN(productId)
+    ||
+    productId <= 0
+) {
     window.location.href =
         "shop.html";
 }
 
-// fallback product
+// FALLBACK PRODUCT
 function getFallbackProduct() {
     return {
         id: 1,
@@ -132,7 +128,7 @@ function getFallbackProduct() {
             "T-Shirt",
         price: 999,
         image:
-            "assets/images/f1.jpg",
+            "assets/images/f1.png",
         description:
             "Premium quality cotton t-shirt with breathable fabric and modern fashion styling.",
         stock: 12,
@@ -141,24 +137,44 @@ function getFallbackProduct() {
     };
 }
 
-// fetch product
+// LOADING STATE
+function showLoadingState() {
+    document.body.classList.add(
+        "loading"
+    );
+}
+
+function hideLoadingState() {
+    document.body.classList.remove(
+        "loading"
+    );
+}
+
+// FETCH PRODUCT
 async function fetchProduct() {
+    showLoadingState();
     try {
         const response =
             await AppUtils.apiRequest(
                 `/products/${productId}`
             );
-
         if (
             response.success
             &&
             response.product
         ) {
-            window.currentProductData =
+
+            currentProductData =
                 response.product;
 
+            sessionStorage.setItem(
+                `product-${productId}`,
+                JSON.stringify(
+                    response.product
+                )
+            );
         } else {
-            window.currentProductData =
+            currentProductData =
                 getFallbackProduct();
         }
 
@@ -168,22 +184,32 @@ async function fetchProduct() {
             error
         );
 
-        window.currentProductData =
-            getFallbackProduct();
+        const cached =
+            sessionStorage.getItem(
+                `product-${productId}`
+            );
+
+        currentProductData =
+            cached
+                ? JSON.parse(
+                    cached
+                )
+                : getFallbackProduct();
     }
     initializeProductPage();
+    hideLoadingState();
 }
 
-// initialize page
+// INITIALIZE PAGE
 function initializeProductPage() {
     const product =
-        window.currentProductData;
+        currentProductData;
 
     if (!product) {
         return;
     }
 
-    // rendering
+    // render product
     if (
         typeof renderProduct ===
         "function"
@@ -193,7 +219,7 @@ function initializeProductPage() {
         );
     }
 
-    // variants
+    // setup variants
     if (
         typeof setupVariants ===
         "function"
@@ -203,7 +229,7 @@ function initializeProductPage() {
         );
     }
 
-    // actions
+    // setup actions
     if (
         typeof setCurrentProduct ===
         "function"
@@ -213,7 +239,7 @@ function initializeProductPage() {
         );
     }
 
-    // reviews
+    // load reviews
     if (
         typeof loadProductReviews ===
         "function"
@@ -223,7 +249,7 @@ function initializeProductPage() {
         );
     }
 
-    // related
+    // related products
     if (
         typeof loadRelatedProducts ===
         "function"
@@ -240,52 +266,72 @@ function initializeProductPage() {
     ) {
         loadRecentlyViewedRecommendations();
     }
+    initializeImageZoom();
 }
 
-// keyboard accessibility
-document.addEventListener(
-    "keydown",
-    (event) => {
-        if (
-            event.key === "+"
-            &&
-            window.plusBtn
-        ) {
-            plusBtn.click();
-        }
-
-        if (
-            event.key === "-"
-            &&
-            window.minusBtn
-        ) {
-            minusBtn.click();
-        }
+// IMAGE ZOOM
+function initializeImageZoom() {
+    if (!elements.mainImage) {
+        return;
     }
-);
 
-// image zoom
-if (
-    window.mainImage
-) {
-    mainImage.addEventListener(
-        "mousemove",
+    elements.mainImage.style.transition =
+        "0.3s ease";
+
+    elements.mainImage.addEventListener(
+        "mouseenter",
         () => {
-            mainImage.style.transform =
-                "scale(1.15)";
+            elements.mainImage.style.transform =
+                "scale(1.05)";
         }
     );
 
-    mainImage.addEventListener(
+    elements.mainImage.addEventListener(
         "mouseleave",
         () => {
-            mainImage.style.transform =
+            elements.mainImage.style.transform =
                 "scale(1)";
         }
     );
 }
 
-// init
+// KEYBOARD ACCESSIBILITY
+document.addEventListener(
+    "keydown",
+    (event) => {
+        const activeTag =
+            document.activeElement
+                ?.tagName;
+
+        if (
+            ["INPUT", "TEXTAREA"]
+                .includes(
+                    activeTag
+                )
+        ) {
+            return;
+        }
+
+        if (
+            event.key === "+"
+            &&
+            elements.plusBtn
+        ) {
+            elements.plusBtn.click();
+
+        }
+
+        if (
+            event.key === "-"
+            &&
+            elements.minusBtn
+        ) {
+            elements.minusBtn.click();
+        }
+    }
+);
+
+// INIT
 document.addEventListener(
     "DOMContentLoaded",
     () => {

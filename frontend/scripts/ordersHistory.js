@@ -1,100 +1,168 @@
-import {
-    getJSON,
-    $,
-    defaultImage
-} from "./utils.js";
-
-// LOAD ALL ORDERS
+// orders
 const orders =
-    getJSON("orders") || [];
+    AppUtils.getJSON(
+        "orders",
+        []
+    );
 
-// ELEMENTS
+// elements
 const elements = {
     ordersContainer:
-        $("#orders-history-container"),
+        AppUtils.$(
+            "#orders-history-container"
+        ),
 
     ordersCount:
-        $("#orders-history-count")
+        AppUtils.$(
+            "#orders-history-count"
+        )
 };
 
-// EMPTY STATE HELPER
-const renderEmptyState = (
-    container,
+// empty state
+function renderEmptyState(
     message
-) => {
-    if(container){
-        container.innerHTML =
-            `<p>${message}</p>`;
+) {
+    if (
+        elements.ordersContainer
+    ) {
+        elements.ordersContainer.innerHTML =
+            `
+                <p class="empty-orders">
+                    ${message}
+                </p>
+            `;
     }
-};
-
-// DISPLAY ORDERS COUNT
-if (elements.ordersCount) {
-    elements.ordersCount.innerText =
-        orders.length;
 }
 
-// DISPLAY ORDERS LIST
-if (elements.ordersContainer) {
-    elements.ordersContainer.innerHTML = "";
-    if (orders.length === 0) {
+// format date
+function formatOrderDate(
+    date
+) {
+    if (
+        !date
+    ) {
+        return "N/A";
+    }
+
+    const parsedDate =
+        new Date(date);
+
+    return isNaN(
+        parsedDate.getTime()
+    )
+        ? "N/A"
+        : parsedDate.toLocaleDateString();
+}
+
+// render count
+if (
+    elements.ordersCount
+) {
+    elements.ordersCount.innerText =
+        Array.isArray(orders)
+            ? orders.length
+            : 0;
+}
+
+// render orders
+function renderOrders() {
+    if (
+        !elements.ordersContainer
+    ) {
+        return;
+    }
+
+    elements.ordersContainer.innerHTML =
+        "";
+
+    if (
+        !Array.isArray(orders)
+        ||
+        orders.length === 0
+    ) {
         renderEmptyState(
-            elements.ordersContainer,
             "No past orders found."
         );
-    } else {
-        orders.forEach((order) => {
+        return;
+    }
+
+    const fragment =
+        document.createDocumentFragment();
+
+    orders.forEach(
+        (order) => {
             const div =
-                document.createElement("div");
+                document.createElement(
+                    "div"
+                );
             div.classList.add(
                 "order-history-item"
             );
-            div.innerHTML = `
-                <h4>
-                    Order ID:
-                    ${order.id || "N/A"}
-                </h4>
-                <p>
-                    Date:
-                    ${order.date || "N/A"}
-                </p>
-                <p>
-                    Status:
-                    ${order.status || "Pending"}
-                </p>
-                <div class="order-items-list">
-                    ${(order.items || [])
-                        .map(
-                            (item) => `
-                        <div class="order-item">
-                            <img
-                                src="${defaultImage(item.img)}"
-                                alt="${item.name || "Product"}"
-                            >
-                            <div>
-                                <h5>
-                                    ${item.name || "Product"}
-                                </h5>
-                                <p>
-                                    Qty:
-                                    ${item.qty || 1}
-                                </p>
-                                <p>
-                                    ₹${(
-                                        (parseFloat(item.price) || 0) *
-                                        (item.qty || 1)
-                                    ).toFixed(2)}
-                                </p>
-                            </div>
-                        </div>
-                    `
-                        )
-                        .join("")}
-                </div>
-            `;
-            elements.ordersContainer.appendChild(
+
+            div.innerHTML =
+                `
+                    <h4>
+                        Order ID:
+                        ${order.id || "N/A"}
+                    </h4>
+                    <p>
+                        Date:
+                        ${formatOrderDate(order.date)}
+                    </p>
+                    <p>
+                        Status:
+                        <span class="order-status">
+                            ${order.status || "Pending"}
+                        </span>
+                    </p>
+                    <div class="order-items-list">
+                        ${(order.items || [])
+                            .map(
+                                (item) => `
+                                    <div class="order-item">
+                                        <img
+                                            src="${AppUtils.defaultImage(item.img || item.image)}"
+                                            alt="${item.name || "Product"}"
+                                            loading="lazy"
+                                        >
+                                        <div>
+                                            <h5>
+                                                ${item.name || "Product"}
+                                            </h5>
+                                            <p>
+                                                Qty:
+                                                ${item.qty || 1}
+                                            </p>
+                                            <p>
+                                                ${AppUtils.formatPrice(
+                                                    (
+                                                        parseFloat(item.price) || 0
+                                                    ) * (
+                                                        item.qty || 1
+                                                    )
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                `
+                            )
+                            .join("")}
+                    </div>
+                `;
+            fragment.appendChild(
                 div
             );
-        });
-    }
+        }
+    );
+    elements.ordersContainer.appendChild(
+        fragment
+    );
 }
+
+// init
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+        renderOrders();
+    }
+);

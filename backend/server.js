@@ -9,29 +9,43 @@ dotenv.config();
 // database
 require("./config/db");
 
+// routes
+const productRoutes =
+    require("./routes/productRoutes");
+const authRoutes =
+    require("./routes/authRoutes");
+const orderRoutes =
+    require("./routes/orderRoutes");
+
 // app
-const app = express();
+const app =
+    express();
 
 // constants
 const PORT =
     process.env.PORT || 5000;
-
 const FRONTEND_URL =
     process.env.FRONTEND_URL
-    || "http://localhost:3000";
+    || "*";
 
-// security middleware
-app.disable("x-powered-by");
+// security
+app.disable(
+    "x-powered-by"
+);
 
-// cors configuration
+// cors
 app.use(
     cors({
-        origin: FRONTEND_URL,
+        origin:
+            FRONTEND_URL === "*"
+                ? true
+                : FRONTEND_URL,
         methods: [
             "GET",
             "POST",
             "PUT",
-            "DELETE"
+            "DELETE",
+            "PATCH"
         ],
         allowedHeaders: [
             "Content-Type",
@@ -41,7 +55,7 @@ app.use(
     })
 );
 
-// body parsers
+// body parser
 app.use(
     express.json({
         limit: "10mb"
@@ -53,6 +67,20 @@ app.use(
         extended: true,
         limit: "10mb"
     })
+);
+
+// request logger
+app.use(
+    (
+        req,
+        res,
+        next
+    ) => {
+        console.log(
+            `${req.method} ${req.originalUrl}`
+        );
+        next();
+    }
 );
 
 // rate limiter
@@ -70,7 +98,7 @@ const authLimiter =
         }
     });
 
-// auth routes limiter
+// auth limiter
 app.use(
     "/api/auth/login",
     authLimiter
@@ -81,25 +109,35 @@ app.use(
     authLimiter
 );
 
-// request logger
-app.use((req, res, next) => {
+// health route
+app.get(
+    "/health",
+    (
+        req,
+        res
+    ) => {
+        res.status(200).json({
+            success: true,
+            message:
+                "Server is healthy"
+        });
+    }
+);
 
-    console.log(
-        `${req.method} ${req.originalUrl}`
-    );
-
-    next();
-});
-
-// routes
-const productRoutes =
-    require("./routes/productRoutes");
-
-const authRoutes =
-    require("./routes/authRoutes");
-
-const orderRoutes =
-    require("./routes/orderRoutes");
+// home route
+app.get(
+    "/",
+    (
+        req,
+        res
+    ) => {
+        res.status(200).json({
+            success: true,
+            message:
+                "E-Commerce Backend Running 🚀"
+        });
+    }
+);
 
 // api routes
 app.use(
@@ -117,59 +155,49 @@ app.use(
     orderRoutes
 );
 
-// health check route
-app.get("/health", (req, res) => {
-
-    res.status(200).json({
-        success: true,
-        message: "Server is healthy"
-    });
-});
-
-// home route
-app.get("/", (req, res) => {
-
-    res.status(200).json({
-        success: true,
-        message:
-            "E-Commerce Backend Running 🚀"
-    });
-});
-
-// 404 handler
-app.use((req, res) => {
-
-    res.status(404).json({
-        success: false,
-        message: "Route not found"
-    });
-});
+// 404
+app.use(
+    (
+        req,
+        res
+    ) => {
+        res.status(404).json({
+            success: false,
+            message:
+                "Route not found"
+        });
+    }
+);
 
 // global error handler
-app.use((
-    err,
-    req,
-    res,
-    next
-) => {
-    console.error(
-        "Server Error:",
-        err
-    );
+app.use(
+    (
+        err,
+        req,
+        res,
+        next
+    ) => {
+        console.error(
+            "SERVER ERROR:",
+            err
+        );
 
-    if (res.headersSent) {
-        return next(err);
+        if (
+            res.headersSent
+        ) {
+            return next(err);
+        }
+
+        res.status(
+            err.status || 500
+        ).json({
+            success: false,
+            message:
+                err.message ||
+                "Internal server error"
+        });
     }
-
-    res.status(
-        err.status || 500
-    ).json({
-        success: false,
-        message:
-            err.message
-            || "Internal server error"
-    });
-});
+);
 
 // graceful shutdown
 process.on(
@@ -182,18 +210,21 @@ process.on(
     }
 );
 
-// server start
-app.listen(PORT, () => {
-    console.log(
-        `Server running on http://localhost:${PORT}`
-    );
-    console.log(
-        `Environment: ${
-            process.env.NODE_ENV
-            || "development"
-        }`
-    );
-    console.log(
-        `Frontend URL: ${FRONTEND_URL}`
-    );
-});
+// start server
+app.listen(
+    PORT,
+    () => {
+        console.log(
+            `Server running on http://localhost:${PORT}`
+        );
+        console.log(
+            `Environment: ${
+                process.env.NODE_ENV
+                || "development"
+            }`
+        );
+        console.log(
+            `Frontend URL: ${FRONTEND_URL}`
+        );
+    }
+);

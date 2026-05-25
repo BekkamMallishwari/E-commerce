@@ -1,23 +1,29 @@
-
-// LOAD ORDERS
+// orders
 const orders =
-    getJSON("orders") || [];
+    AppUtils.getJSON(
+        "orders",
+        []
+    );
 
-// GET LATEST ORDER
+// latest order
 const latestOrder =
-    Array.isArray(orders) &&
+    Array.isArray(orders)
+    &&
     orders.length > 0
-        ? orders[orders.length - 1]
+        ? orders[
+            orders.length - 1
+        ]
         : null;
 
-// REDIRECT IF NO ORDER
-if(!latestOrder){
+// redirect if no order
+if (
+    !latestOrder
+) {
     window.location.href =
         "shop.html";
-
 }
 
-// ELEMENTS
+// elements
 const elements = {
 
     orderItemsContainer:
@@ -56,94 +62,164 @@ const elements = {
         )
 };
 
-if (elements.orderId) {
+// render order details
+if (
+    elements.orderId
+) {
     elements.orderId.innerText =
         latestOrder.id || "N/A";
 }
-
-if (elements.orderDate) {
+if (
+    elements.orderDate
+) {
+    const formattedDate =
+        latestOrder.date
+            ? new Date(
+                latestOrder.date
+            ).toLocaleDateString()
+            : "N/A";
     elements.orderDate.innerText =
-        latestOrder.date || "N/A";
+        formattedDate;
 }
 
-// STATUS
+// status
 const status =
     latestOrder.status ||
     "Pending";
 
-if (elements.statusBadge) {
+if (
+    elements.statusBadge
+) {
     elements.statusBadge.innerText =
         status;
-}
-
-if (
-    status === "Processing" ||
-    status === "Shipped" ||
-    status === "Delivered"
-) {
-    if (elements.processingStep) {
-        elements.processingStep.classList.add(
-            "active-step"
-        );
-    }
-}
-if (
-    status === "Shipped" ||
-    status === "Delivered"
-) {
-    if (elements.shippedStep) {
-        elements.shippedStep.classList.add(
-            "active-step"
-        );
-    }
-}
-if (
-    status === "Delivered"
-) {
-    if (elements.deliveredStep) {
-        elements.deliveredStep.classList.add(
-            "active-step"
-        );
-    }
-}
-
-// RENDER ITEMS
-const orderItems =
-    latestOrder?.items || [];
-
-(orderItems || []).forEach((item) => {
-    const div =
-        document.createElement("div");
-    div.classList.add(
-        "order-item"
+    elements.statusBadge.className =
+        "status-badge";
+    elements.statusBadge.classList.add(
+        status.toLowerCase()
     );
+}
 
-    div.innerHTML = `
-        <div class="order-item-left">
-            <img
-                src="${defaultImage(item.img)}"
-                alt="${item.name || 'Product'}"
-            >
-            <div>
-                <h4>
-                    ${item.name || "Product"}
-                </h4>
-                <p>
-                    Quantity: ${item.qty || 1}
-                </p>
-            </div>
-        </div>
-        <h4>
-            ₹${(
-                (parseFloat(item.price) || 0) *
-                (item.qty || 1)
-            ).toFixed(2)}
-        </h4>
-    `;
+// timeline
+if (
+    [
+        "Processing",
+        "Shipped",
+        "Delivered"
+    ].includes(status)
+) {
+    elements.processingStep?.classList.add(
+        "active-step"
+    );
+}
+if (
+    [
+        "Shipped",
+        "Delivered"
+    ].includes(status)
+) {
+    elements.shippedStep?.classList.add(
+        "active-step"
+    );
+}
+if (
+    status === "Delivered"
+) {
+    elements.deliveredStep?.classList.add(
+        "active-step"
+    );
+}
 
-    if (elements.orderItemsContainer) {
-        elements.orderItemsContainer.appendChild(
-            div
-        );
+// render items
+function renderOrderItems() {
+    if (
+        !elements.orderItemsContainer
+    ) {
+        return;
     }
-});
+    elements.orderItemsContainer.innerHTML =
+        "";
+
+    const items =
+        latestOrder.items || [];
+
+    if (
+        !Array.isArray(items)
+        ||
+        items.length === 0
+    ) {
+        elements.orderItemsContainer.innerHTML =
+            `
+                <p class="empty-order-items">
+                    No items found.
+                </p>
+            `;
+        return;
+    }
+
+    const fragment =
+        document.createDocumentFragment();
+
+    items.forEach(
+        (item) => {
+            const qty =
+                parseInt(
+                    item.qty,
+                    10
+                ) || 1;
+
+            const price =
+                parseFloat(
+                    item.price
+                ) || 0;
+
+            const total =
+                qty * price;
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.classList.add(
+                "order-item"
+            );
+
+            div.innerHTML =
+                `
+                    <div class="order-item-left">
+                        <img
+                            src="${AppUtils.defaultImage(item.img || item.image)}"
+                            alt="${item.name || "Product"}"
+                            loading="lazy"
+                        >
+                        <div>
+                            <h4>
+                                ${item.name || "Product"}
+                            </h4>
+                            <p>
+                                Quantity:
+                                ${qty}
+                            </p>
+                        </div>
+                    </div>
+                    <h4>
+                        ${AppUtils.formatPrice(total)}
+                    </h4>
+                `;
+            fragment.appendChild(
+                div
+            );
+        }
+    );
+    elements.orderItemsContainer.appendChild(
+        fragment
+    );
+}
+
+// init
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+        renderOrderItems();
+    }
+);

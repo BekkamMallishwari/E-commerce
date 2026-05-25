@@ -2,45 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wishlist | AnthropicBots E-Commerce</title>
-    <link rel="stylesheet" href="styles/base.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/components.css">
-<link rel="stylesheet" href="styles/hero.css">
-<link rel="stylesheet" href="styles/product-card.css">
-<link rel="stylesheet" href="styles/style.css">
-    <link rel="stylesheet" href="styles/wishlist.css">
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <!-- SEO -->
+    <meta
+        name="description"
+        content="View and manage your saved wishlist products on AnthropicBots E-Commerce."
+    >
+
+    <meta
+        name="keywords"
+        content="wishlist, saved products, ecommerce favorites"
+    >
+
+    <meta
+        name="author"
+        content="AnthropicBots E-Commerce"
+    >
+    <title>
+        Wishlist | AnthropicBots E-Commerce
+    </title>
+
+    <!-- Favicon -->
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/images/logo.png"
+    >
+
+    <!-- Styles -->
+    <link
+        rel="stylesheet"
+        href="styles/base.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/layout.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/components.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/hero.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/product-card.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="styles/wishlist.css"
+    >
+
+    <!-- Icons -->
+    <link
+        rel="stylesheet"
+        href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
+    >
 </head>
+
 <body>
+    <!-- Navbar -->
     <div id="navbar"></div>
 
     <!-- Wishlist Header -->
     <section id="wishlist-header">
-        <h2>My Wishlist</h2>
-        <p>Save your favorite products here</p>
+        <h2>
+            My Wishlist
+        </h2>
+        <p>
+            Save your favorite products here
+        </p>
     </section>
 
-    <!-- Wishlist Products -->
-    <section id="wishlist-page" class="section-p1">
-        <div class="wishlist-container" id="wishlist-container"></div>
+    <!-- Wishlist Page -->
+    <section
+        id="wishlist-page"
+        class="section-p1"
+    >
+        <!-- Wishlist Products -->
+        <div
+            class="wishlist-container"
+            id="wishlist-container"
+        ></div>
 
         <!-- Empty State -->
-        <div id="empty-wishlist" class="empty-wishlist">
+        <div
+            id="empty-wishlist"
+            class="empty-wishlist"
+        >
             <i class="far fa-heart"></i>
-            <h3>Your wishlist is empty</h3>
-            <p>Browse products and save your favorites.</p>
-            <a href="shop.html">Continue Shopping</a>
+            <h3>
+                Your wishlist is empty
+            </h3>
+            <p>
+                Browse products and save your favorites.
+            </p>
+            <a href="shop.html">
+                Continue Shopping
+            </a>
         </div>
     </section>
 
+    <!-- Footer -->
     <div id="footer"></div>
 
-    <!-- Components & Auth -->
-    <script src="scripts/components.js"></script>
-    <script src="scripts/auth.js"></script>
-    <script src="scripts/wishlist.js"></script>
+    <!-- Core Scripts -->
+    <script
+        defer
+        src="scripts/config.js"
+    ></script>
 
-</body>
+    <script
+        defer
+        src="scripts/toast.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/utils.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/components.js"
+    ></script>
+
+    <script
+        defer
+        src="scripts/auth.js"
+    ></script>
+
+    <!-- Wishlist Script -->
+    <script
+        defer
+        src="scripts/wishlist.js"
+    ></script>
+
+</body
 </html>
