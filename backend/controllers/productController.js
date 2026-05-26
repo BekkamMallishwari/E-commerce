@@ -161,15 +161,26 @@ const getProducts = async (req, res) => {
     } catch (error) {
 
         console.error(
-            "GET PRODUCTS ERROR:",
+            "GET PRODUCTS ERROR:"
+        );
+
+        console.error(
             error
+        );
+
+        console.error(
+            "STACK:"
+        );
+
+        console.error(
+            error.stack
         );
 
         return res.status(500)
             .json({
                 success: false,
                 message:
-                    "Failed to fetch products"
+                    error.message || "Failed to fetch products"
             });
     }
 };
