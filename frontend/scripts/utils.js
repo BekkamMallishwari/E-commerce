@@ -322,11 +322,18 @@ const apiRequest =
         const timeoutId =
             setTimeout(
                 () => {
-
-                    controller.abort();
-
+                
+                    if (
+                        !controller.signal.aborted
+                    ) {
+                    
+                        controller.abort(
+                            "Request timeout"
+                        );
+                    }
+                
                 },
-                CONFIG.REQUEST_TIMEOUT || 10000
+                CONFIG.REQUEST_TIMEOUT || 20000
             );
 
         try {
@@ -462,6 +469,21 @@ const apiRequest =
                 error.name ===
                 "AbortError"
             ) {
+            
+                console.warn(
+                    `REQUEST TIMEOUT: ${url}`
+                );
+            
+                return {
+                
+                    success: false,
+                
+                    timeout: true,
+                
+                    message:
+                        "Server took too long to respond"
+                };
+            } {
 
                 return {
 
