@@ -1,12 +1,15 @@
 <section id="header">
+    <!-- Logo -->
     <a href="index.html">
         <img src="assets/images/logo.png" class="logo" alt="AnthropicBots Logo" loading="lazy">
     </a>
 
+    <!-- Mobile Menu Button -->
     <button id="mobile-menu-btn" aria-label="Toggle Navigation">
         <i class="fas fa-bars"></i>
     </button>
 
+    <!-- Navigation -->
     <nav>
         <ul id="navbar-links">
             <li id="mobile-close-btn">
@@ -14,13 +17,13 @@
                     <path d="M10.5859 12L2.79297 4.20706L4.20718 2.79285L12.0001 10.5857L19.793 2.79285L21.2072 4.20706L13.4143 12L21.2072 19.7928L19.793 21.2071L12.0001 13.4142L4.20718 21.2071L2.79297 19.7928L10.5859 12Z"></path>
                 </svg>
             </li>
-
-            <li><a href="index.html">Interm</a></li>
+            <li><a href="index.html">Home</a></li>
             <li><a href="shop.html">Shop</a></li>
             <li><a href="blog.html">Blog</a></li>
             <li><a href="about.html">About</a></li>
             <li><a href="contact.html">Contact</a></li>
 
+            <!-- Cart -->
             <li class="cart-link">
                 <a href="cart.html" aria-label="Shopping Cart">
                     <i class="far fa-shopping-bag"></i>
@@ -28,13 +31,18 @@
                 </a>
             </li>
 
+            <!-- Profile -->
             <li class="profile-wrapper">
                 <a href="signin.html" id="auth-link">
                     Sign In <i class="fas fa-caret-down" style="font-size: 12px; margin-left: 3px;"></i>
                 </a>
+                <!-- Dropdown -->
                 <div id="profile-dropdown">
                     <a href="profile.html"><i class="fas fa-user"></i> My Profile</a>
                     <a href="dashboard.html#orders"><i class="fas fa-shopping-bag"></i> Orders</a>
+                    <a href="dashboard.html#wishlist"><i class="fas fa-heart"></i> Wishlist</a>
+                    <a href="dashboard.html#settings"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="dashboard.html#cart"><i class="fas fa-shopping-cart"></i> Saved Cart</a>
                     <button id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </div>
             </li>
