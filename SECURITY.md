@@ -13,7 +13,7 @@ Security updates are currently provided for the latest code available on the `ma
 To report a security vulnerability in **E-commerce**, please use one of the following private channels:
 
 - 📧 Security Email: anthropicbots@gmail.com
-- 👤 Organization Profile: https://github.com/AnthropicBots
+- 👤 Organization Profile: [Github](https://github.com/AnthropicBots)
 - 💬 Contact the maintainers through any social links listed on the organization profile
 
 > Please **do not** open a public GitHub issue for security vulnerabilities.
