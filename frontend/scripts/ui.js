@@ -274,13 +274,17 @@ function updateCartCount() {
     }
 }
 
+let uiInitialized = false;
+
 // initialize ui
 function initializeUI() {
+    if (uiInitialized) return;
     console.log("🎯 InitializeUI called");
     initializeMobileMenu();
     initializeStickyHeader();
     initializeRippleEffect();
     updateCartCount();
+    uiInitialized = true;
 }
 
 // init after components load - PRIMARY METHOD
@@ -289,17 +293,6 @@ document.addEventListener(
     () => {
         console.log("🎊 componentsLoaded event fired!");
         initializeUI();
-    }
-);
-
-// fallback init with aggressive retry mechanism
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-        console.log("📄 DOMContentLoaded fired");
-        setTimeout(initializeUI, 300);
-        setTimeout(initializeUI, 800);
-        setTimeout(initializeUI, 1500);
     }
 );
 
