@@ -1,9 +1,6 @@
 /* =============================
 product controls
 ============================= */
-body {
-    padding-top: 90px;
-}
 .product-controls{
     width: 100%;
     display: flex;

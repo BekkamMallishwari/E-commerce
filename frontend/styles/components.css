@@ -11,10 +11,21 @@
     justify-content: space-between;
 
     padding: 20px 80px;
-    background: var(--bg-light, #ffffff);
+
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
 
     z-index: 999;
+}
+
+#hero {
+    margin-top: 80px;
+}
+
+html, body {
+    overflow-x: hidden;
 }
 
 #header .logo {
