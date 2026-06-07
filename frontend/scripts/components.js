@@ -103,6 +103,15 @@ async function initializeComponents() {
     );
 }
 
+const user = JSON.parse(localStorage.getItem("user"));
+
+const profileDropdown = document.getElementById("profile-dropdown");
+
+if (user && profileDropdown) {
+    profileDropdown.setAttribute("data-loggedin", "true");
+}
+
+
 // init
 document.addEventListener(
     "DOMContentLoaded",
