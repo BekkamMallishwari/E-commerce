@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const container =
         document.getElementById(
-            "seasonal-products"
+            "summer-products"
         );
 
     try {
@@ -12,15 +12,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                 "/products?limit=50"
             );
 
-        const seasonalProducts =
+        const summerProducts =
             data.products.filter(
                 product =>
-                    product.category === "Seasonal"
+                    product.category === "Summer"
             );
 
         renderProducts(
             container,
-            seasonalProducts
+            summerProducts
         );
 
     } catch (error) {
