@@ -31,9 +31,11 @@ hero section
     will-change: opacity, transform;
 }
 
+/* Active slide: fade/scale in for a smooth image entrance */
 #hero-slider .hero-slide.is-active{
     opacity: 1;
     transform: scale(1);
+    animation: zoomInSlight 0.7s ease-out both;
 }
 
 /* overlay to improve text contrast */
@@ -84,16 +86,6 @@ hero section
     cursor: pointer;
     font-weight: 700;
     font-size: 15px;
-    transition: var(--transition-fast);
-}
-
-#hero button:hover{
-    transform: translateY(-2px);
-}
-
-/* Subtle premium zoom on hero image load */
-#hero-slider .hero-slide.is-active{
-    animation: zoomInSlight 0.7s ease-out both;
 }
 
 

@@ -97,34 +97,21 @@ KEYFRAME DEFINITIONS
     }
 }
 
-/* Shimmer Animation */
-@keyframes shimmer {
-    0% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0.6;
-    }
-}
-
 /* =============================
 HERO SECTION ANIMATIONS
 ============================= */
 
-/* Hero heading animation */
+/* Hero text content: subtle fade-in + slide-up with a gentle stagger */
 #hero h4 {
-    animation: slideInLeft 0.8s ease-out 0.1s both;
+    animation: fadeInUp 0.8s ease-out 0.1s both;
 }
 
 #hero h2 {
-    animation: slideInLeft 0.8s ease-out 0.2s both;
+    animation: fadeInUp 0.8s ease-out 0.2s both;
 }
 
 #hero h1 {
-    animation: slideInLeft 0.8s ease-out 0.3s both;
+    animation: fadeInUp 0.8s ease-out 0.3s both;
 }
 
 #hero p {
@@ -403,19 +390,27 @@ ACCESSIBILITY - REDUCED MOTION
 ============================= */
 
 @media (prefers-reduced-motion: reduce) {
-    /* Disable all animations if user prefers reduced motion */
-    * {
+    /* Near-instant for any motion if the user prefers reduced motion */
+    *,
+    *::before,
+    *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 
-    /* Keep essential transitions for interactions */
-    #navbar-links li a,
-    #navbar-links li button,
-    .pro,
-    #feature .fe-box {
-        transition: color 0.3s, background-color 0.3s !important;
+    /* Ensure animated-in elements settle fully visible (no leftover offset/fade) */
+    .animate-on-scroll,
+    #hero h4,
+    #hero h2,
+    #hero h1,
+    #hero p,
+    #hero button,
+    #feature .fe-box,
+    .pro {
+        opacity: 1 !important;
+        transform: none !important;
     }
 }
 
@@ -482,20 +477,4 @@ a,
 button {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-}
-
-/* Reduce motion for users who prefer less animation */
-@media (prefers-reduced-motion: reduce) {
-    .animate-on-scroll,
-    .pro,
-    #feature .fe-box,
-    #hero h1,
-    #hero h2,
-    #hero p,
-    #hero button {
-        transition: none !important;
-        animation-duration: 1ms !important;
-        transform: none !important;
-        opacity: 1 !important;
-    }
 }
