@@ -1,19 +1,18 @@
-/**
- * Back to Top Button
- * File: frontend/scripts/back-to-top.js
- *
- * Self-contained module — creates the button, manages visibility on
- * scroll, and smooth-scrolls to the top on click.
- *
- * Initialises via the "componentsLoaded" custom event so it fires
- * after navbar/footer components are injected (same pattern as ui.js).
- * Falls back to DOMContentLoaded if components.js is not present.
- */
-
 (function () {
   "use strict";
 
   const SCROLL_THRESHOLD = 300; // px from top before button appears
+
+  /** Returns the current scroll position regardless of scroll container */
+  function getScrollTop() {
+    return document.body.scrollTop || 0;
+  }
+
+  /** Scroll to top — calls both targets so either scroll container responds */
+  function scrollToTop() {
+    document.body.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   /** Create and append the button to <body> */
   function createButton() {
@@ -29,56 +28,32 @@
       </svg>
     `;
 
-    btn.addEventListener("click", function () {
-  document.body.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-});
-
+    btn.addEventListener("click", scrollToTop);
     document.body.appendChild(btn);
     return btn;
   }
 
   /** Toggle .visible class based on current scroll position */
   function handleScroll(btn) {
-  const scrollTop =
-    window.scrollY ||
-    document.documentElement.scrollTop ||
-    document.body.scrollTop;
-
-  
-
-  if (scrollTop > SCROLL_THRESHOLD) {
-    
-    btn.classList.add("visible");
-  } else {
-    
-    btn.classList.remove("visible");
+    btn.classList.toggle("visible", getScrollTop() > SCROLL_THRESHOLD);
   }
-}
-  /**
-   * Throttle using requestAnimationFrame — same pattern as
-   * initializeStickyHeader() in ui.js for consistency.
-   */
+
   function initScrollListener(btn) {
     let ticking = false;
 
     document.body.addEventListener(
-  "scroll",
-  function () {
-    
-
-    if (!ticking) {
-      window.requestAnimationFrame(function () {
-        handleScroll(btn);
-        ticking = false;
-      });
-      ticking = true;
-    }
-  },
-  { passive: true }
-);
+      "scroll",
+      function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            handleScroll(btn);
+            ticking = false;
+          });
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
   }
 
   function init() {
