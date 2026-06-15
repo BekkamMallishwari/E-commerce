@@ -1,109 +1,62 @@
-const mysql =
-    require("mysql2");
+const mysql = require("mysql2");
 
-require("dotenv")
-    .config();
+require("dotenv").config();
 
 // validate environment variables
-const requiredEnvVars = [
+const requiredEnvVars = ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"];
 
-    "DB_HOST",
+requiredEnvVars.forEach((key) => {
+  if (!process.env[key]) {
+    console.error(`Missing environment variable: ${key}`);
 
-    "DB_USER",
-
-    "DB_PASSWORD",
-
-    "DB_NAME"
-];
-
-requiredEnvVars.forEach(
-    (
-        key
-    ) => {
-
-        if (
-            !process.env[key]
-        ) {
-
-            console.error(
-                `Missing environment variable: ${key}`
-            );
-
-            process.exit(1);
-        }
-    }
-);
+    process.exit(1);
+  }
+});
 
 // create mysql pool
-const pool =
-    mysql.createPool({
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT) || 3306,
 
-        host:
-            process.env.DB_HOST,
+  user: process.env.DB_USER,
 
-        user:
-            process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
 
-        password:
-            process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 
-        database:
-            process.env.DB_NAME,
+  waitForConnections: true,
 
-        waitForConnections:
-            true,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
 
-        connectionLimit:
-            Number(
-                process.env.DB_CONNECTION_LIMIT
-            ) || 10,
+  queueLimit: 0,
 
-        queueLimit:
-            0,
+  connectTimeout: 10000,
 
-        connectTimeout:
-            10000,
+  charset: "utf8mb4",
 
-        charset:
-            "utf8mb4",
+  supportBigNumbers: true,
 
-        supportBigNumbers:
-            true,
-
-        multipleStatements:
-            false
-    });
+  multipleStatements: false,
+});
 
 // promise wrapper
-const promisePool =
-    pool.promise();
+const promisePool = pool.promise();
 
 // connection test
 async function testConnection() {
+  try {
+    const connection = await promisePool.getConnection();
 
-    try {
+    console.log("MySQL Connected Successfully");
 
-        const connection =
-            await promisePool.getConnection();
+    connection.release();
+  } catch (error) {
+    console.error("Database Connection Failed:");
 
-        console.log(
-            "MySQL Connected Successfully"
-        );
+    console.error(error.message);
 
-        connection.release();
-
-    } catch (error) {
-
-        console.error(
-            "Database Connection Failed:"
-        );
-
-        console.error(
-            error.message
-        );
-
-        process.exit(1);
-    }
+    process.exit(1);
+  }
 }
 
 // initialize connection test
@@ -111,92 +64,46 @@ testConnection();
 
 // graceful shutdown
 async function shutdown() {
+  try {
+    console.log("\nClosing MySQL connections...");
 
-    try {
+    await promisePool.end();
 
-        console.log(
-            "\nClosing MySQL connections..."
-        );
+    console.log("MySQL pool closed");
 
-        await promisePool.end();
+    process.exit(0);
+  } catch (error) {
+    console.error("Error closing MySQL pool:", error.message);
 
-        console.log(
-            "MySQL pool closed"
-        );
-
-        process.exit(0);
-
-    } catch (error) {
-
-        console.error(
-            "Error closing MySQL pool:",
-            error.message
-        );
-
-        process.exit(1);
-    }
+    process.exit(1);
+  }
 }
 
 // graceful shutdown signals
-process.on(
-    "SIGINT",
-    shutdown
-);
+process.on("SIGINT", shutdown);
 
-process.on(
-    "SIGTERM",
-    shutdown
-);
+process.on("SIGTERM", shutdown);
 
 // pool errors
-pool.on(
-    "error",
-    (
-        error
-    ) => {
+pool.on("error", (error) => {
+  console.error("MySQL Pool Error:", error.message);
 
-        console.error(
-            "MySQL Pool Error:",
-            error.message
-        );
+  // fatal mysql errors
+  if (error.code === "PROTOCOL_CONNECTION_LOST") {
+    console.error("Database connection lost.");
+  }
 
-        // fatal mysql errors
-        if (
-            error.code ===
-            "PROTOCOL_CONNECTION_LOST"
-        ) {
+  if (error.code === "ER_CON_COUNT_ERROR") {
+    console.error("Database has too many connections.");
+  }
 
-            console.error(
-                "Database connection lost."
-            );
-        }
-
-        if (
-            error.code ===
-            "ER_CON_COUNT_ERROR"
-        ) {
-
-            console.error(
-                "Database has too many connections."
-            );
-        }
-
-        if (
-            error.code ===
-            "ECONNREFUSED"
-        ) {
-
-            console.error(
-                "Database connection refused."
-            );
-        }
-    }
-);
+  if (error.code === "ECONNREFUSED") {
+    console.error("Database connection refused.");
+  }
+});
 
 // export promise pool
-module.exports =
-    promisePool;
+module.exports = promisePool;
 
 // optional raw pool access
-module.exports.rawPool =
-    pool;
+module.exports.rawPool = pool;

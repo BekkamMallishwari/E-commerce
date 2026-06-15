@@ -8,6 +8,7 @@
     >
 
     <!-- SEO -->
+    <link rel="canonical" href="https://www.bhuvansh.xyz/index.html">
     <meta
         name="description"
         content="Cara Fashion Store - Modern fashion e-commerce website with trending collections, featured products, and secure shopping experience."
@@ -253,9 +254,8 @@
             </span>
             - All t-Shirts & Accessories
         </h2>
-        <button class="normal">
-            Explore More
-        </button>
+        <a href="shop.html"><button class="normal">
+            Explore Our Shop</button></a>
     </section>
 
     <!-- New Arrivals -->
@@ -308,7 +308,9 @@
                 The best classic dress is on sale at cara
             </span>
             <button class="white">
-                Learn More
+                <a href="about.html">
+                About Cara Store
+                </a>
             </button>
         </div>
 
@@ -323,7 +325,9 @@
                 The best classic dress is on sale at cara
             </span>
             <button class="white">
+                <a href="shop.html">
                 Collection
+                </a>
             </button>
         </div>
     </section>
@@ -339,23 +343,27 @@
             </h3>
         </div>
 
-        <div class="banner-box banner-box2">
-            <h2>
-                EARLY SUMMER COLLECTION
-            </h2>
-            <h3>
-                SUMMER 2026
-            </h3>
-        </div>
-
-        <div class="banner-box banner-box3">
-            <h2>
-                T-SHIRTS
-            </h2>
-            <h3>
-                New Trendy Prints
-            </h3>
-        </div>
+        <a href="seasonal.html" class="banner-link">
+            <div class="banner-box">
+                <h2>SEASONAL SALE</h2>
+                <h3>SUMMER Collection -50% OFF</h3>
+            </div>
+        </a>
+    
+        <a href="early_summer.html" class="banner-link">
+            <div class="banner-box banner-box2">
+                <h2>SUMMER COLLECTION</h2>
+                <h3>SUMMER 2026</h3>
+            </div>
+        </a>
+    
+        <a href="tshirt.html" class="banner-link">
+            <div class="banner-box banner-box3">
+                <h2>T-SHIRTS</h2>
+                <h3>New Trendy Prints</h3>
+            </div>
+        </a>
+    
     </section>
 
     <!-- Newsletter -->
@@ -374,15 +382,15 @@
                 </span>
             </p>
         </div>
-        <div class="form">
+        <form class="form">
             <input
                 type="email"
                 placeholder="Your email address"
             >
-            <button class="normal">
+            <button class="normal" type="submit">
                 Sign Up
             </button>
-        </div>
+        </form>
     </section>
 
     <!-- Footer -->
@@ -456,5 +464,14 @@
         src="scripts/script.js"
     ></script>
 
+
+    <script
+        defer
+        src="scripts/back-to-top.js"
+    ></script>
+
   </body>
+
+</body>
+
 </html>

@@ -276,12 +276,14 @@ function createProductCard(
                         </button>
                     `
                     : `
-                        <button
-                            class="add-to-cart-icon"
-                            aria-label="Add to cart"
-                        >
-                            <i class="fal fa-shopping-cart cart"></i>
-                        </button>
+                        <div style="position: absolute; bottom: 20px; right: 12px; display: flex; gap: 8px; z-index: 2;">
+                            <button class="wishlist-btn-shop cart" data-id="${product.id}" aria-label="Add to Wishlist" style="position: relative; bottom: 0; right: 0;">
+                                <i class="${ AppUtils.getWishlist().some(item => String(item.id) === String(product.id)) ? 'fas' : 'far' } fa-heart"></i>
+                            </button>
+                            <button class="add-to-cart-icon cart" aria-label="Add to cart" style="position: relative; bottom: 0; right: 0;">
+                                <i class="fal fa-shopping-cart"></i>
+                            </button>
+                        </div>
                     `
             }
         </div>
@@ -447,6 +449,64 @@ function setupProductCard(
             }
         }
     );
+
+    // add to wishlist
+    const wishlistBtn = card.querySelector(".wishlist-btn-shop");
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Re-use logic from product-actions-home.js if it's available, otherwise fallback
+            if (typeof window.toggleWishlist === "function") {
+                await window.toggleWishlist(product);
+            } else {
+                let wishlist = AppUtils.getWishlist();
+                const exists = wishlist.some(item => String(item.id) === String(product.id));
+                const token = AppUtils.getToken();
+
+                if (exists) {
+                    wishlist = wishlist.filter(item => String(item.id) !== String(product.id));
+                    AppUtils.notify("Removed from wishlist", "info");
+                    if (token) {
+                        try {
+                            await AppUtils.apiRequest("/wishlist/remove", {
+                                method: "POST",
+                                body: JSON.stringify({ productId: product.id })
+                            });
+                        } catch (e) {}
+                    }
+                } else {
+                    wishlist.push(product);
+                    AppUtils.notify("Added to wishlist ❤️", "success");
+                    if (token) {
+                        try {
+                            await AppUtils.apiRequest("/wishlist/add", {
+                                method: "POST",
+                                body: JSON.stringify({ productId: product.id })
+                            });
+                        } catch (e) {}
+                    }
+                }
+                AppUtils.saveWishlist(wishlist);
+                
+                // Update DOM icons dynamically
+                const buttons = document.querySelectorAll(`.wishlist-btn[data-id="${product.id}"], .wishlist-btn-shop[data-id="${product.id}"]`);
+                buttons.forEach(btn => {
+                    const icon = btn.querySelector("i");
+                    if (icon) {
+                        if (exists) {
+                            icon.classList.remove("fas");
+                            icon.classList.add("far");
+                        } else {
+                            icon.classList.remove("far");
+                            icon.classList.add("fas");
+                        }
+                    }
+                });
+            }
+        });
+    }
 }
 
 // SEARCH FILTER
@@ -644,7 +704,10 @@ function renderPagination() {
         );
 
     prevBtn.innerText =
-        "Prev";
+        "← Prev";
+
+    prevBtn.className = 
+        "pagination-btn";
 
     prevBtn.disabled =
         currentPage <= 1;
@@ -672,6 +735,9 @@ function renderPagination() {
             "span"
         );
 
+    pageInfo.className = 
+        "pagination-info";
+
     pageInfo.innerText =
         `Page ${currentPage} of ${totalPages}`;
 
@@ -686,7 +752,10 @@ function renderPagination() {
         );
 
     nextBtn.innerText =
-        "Next";
+        "Next →";
+
+    nextBtn.className = 
+        "pagination-btn";
 
     nextBtn.disabled =
         currentPage >= totalPages;

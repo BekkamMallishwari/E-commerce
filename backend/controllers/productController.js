@@ -183,7 +183,7 @@ const getProducts = async (req, res) => {
 };
 
 // get single product
-const getSingleProduct = (req, res) => {
+const getSingleProduct = async (req, res) => {
     const id =
         safeInteger(
             req.params.id
@@ -212,15 +212,8 @@ const getSingleProduct = (req, res) => {
         WHERE id = ?
     `;
 
-    db.query(query, [id], (error, results) => {
-        if (error) {
-            console.error(error);
-
-            return res.status(500).json({
-                success: false,
-                message: "Server error"
-            });
-        }
+    try {
+        const [results] = await db.query(query, [id]);
 
         if (results.length === 0) {
             return res.status(404).json({
@@ -233,11 +226,18 @@ const getSingleProduct = (req, res) => {
             success: true,
             product: results[0]
         });
-    });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 };
 
 // create product
-const createProduct = (req, res) => {
+const createProduct = async (req, res) => {
     const {
         name,
         description,
@@ -271,45 +271,44 @@ const createProduct = (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
-    db.query(
-        query,
-        [
-            sanitizeString(name),
-            description || "",
-            safeNumber(price),
-            sanitizeString(image),
-            sanitizeString(category),
-            Math.max(
-                0,
-                safeInteger(stock)
-            ),
-            featured === true
-            || featured === 1
-            || featured === "1"
-                ? 1
-                : 0
-        ],
-        (error, result) => {
-            if (error) {
-                console.error(error);
+    try {
+        const [result] = await db.query(
+            query,
+            [
+                sanitizeString(name),
+                description || "",
+                safeNumber(price),
+                sanitizeString(image),
+                sanitizeString(category),
+                Math.max(
+                    0,
+                    safeInteger(stock)
+                ),
+                featured === true
+                || featured === 1
+                || featured === "1"
+                    ? 1
+                    : 0
+            ]
+        );
 
-                return res.status(500).json({
-                    success: false,
-                    message: "Server error"
-                });
-            }
+        res.status(201).json({
+            success: true,
+            message: "Product created successfully",
+            productId: result.insertId
+        });
+    } catch (error) {
+        console.error(error);
 
-            res.status(201).json({
-                success: true,
-                message: "Product created successfully",
-                productId: result.insertId
-            });
-        }
-    );
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 };
 
 // update product
-const updateProduct = (req, res) => {
+const updateProduct = async (req, res) => {
     const id =
         safeInteger(
             req.params.id
@@ -364,52 +363,51 @@ const updateProduct = (req, res) => {
         WHERE id = ?
     `;
 
-    db.query(
-        query,
-        [
-            sanitizeString(name),
-            description || "",
-            safeNumber(price),
-            sanitizeString(image),
-            sanitizeString(category),
-            Math.max(
-                0,
-                safeInteger(stock)
-            ),
-            featured === true
-            || featured === 1
-            || featured === "1"
-                ? 1
-                : 0,
-            id
-        ],
-        (error, result) => {
-            if (error) {
-                console.error(error);
+    try {
+        const [result] = await db.query(
+            query,
+            [
+                sanitizeString(name),
+                description || "",
+                safeNumber(price),
+                sanitizeString(image),
+                sanitizeString(category),
+                Math.max(
+                    0,
+                    safeInteger(stock)
+                ),
+                featured === true
+                || featured === 1
+                || featured === "1"
+                    ? 1
+                    : 0,
+                id
+            ]
+        );
 
-                return res.status(500).json({
-                    success: false,
-                    message: "Server error"
-                });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Product not found"
-                });
-            }
-
-            res.status(200).json({
-                success: true,
-                message: "Product updated successfully"
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Product not found"
             });
         }
-    );
+
+        res.status(200).json({
+            success: true,
+            message: "Product updated successfully"
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 };
 
 // delete product
-const deleteProduct = (req, res) => {
+const deleteProduct = async (req, res) => {
     const id =
         safeInteger(
             req.params.id
@@ -426,15 +424,8 @@ const deleteProduct = (req, res) => {
 
     const query = "DELETE FROM products WHERE id = ?";
 
-    db.query(query, [id], (error, result) => {
-        if (error) {
-            console.error(error);
-
-            return res.status(500).json({
-                success: false,
-                message: "Server error"
-            });
-        }
+    try {
+        const [result] = await db.query(query, [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
@@ -447,7 +438,14 @@ const deleteProduct = (req, res) => {
             success: true,
             message: "Product deleted successfully"
         });
-    });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 };
 
 module.exports = {

@@ -10,8 +10,34 @@
     --border-light: #cce7d0;
     --shadow-soft: 0 10px 30px rgba(0,0,0,0.12);
     --transition-fast: 0.3s ease;
+    --dropdown-bg: #ffffff;
+    --card-bg: #ffffff;
+    --faq-bg: #ffffff;
+    --faq-question-bg: #f8f8f8;
+    --border-color: #e1e1e1;
+    --text-heading: #222;
+    --text-body: #555;
+    --input-bg: #ffffff;
+    --container-bg: #ffffff; 
 }
+body.dark-theme {
+    --text-dark: #ffffff;
+    --text-light: #d1d1d1;
+    --bg-light: #1a1a1a;
+    --white: #121212;
+    --dropdown-bg: #1e1e1e;
+    --card-bg: #1e1e1e;
+    --faq-bg: #1e1e1e;
+    --faq-question-bg: #2a2a2a;
+    --border-color: #333;
+    --text-heading: #ffffff;
+    --text-body: #d1d1d1;
+    --input-bg: #1e1e1e;
+    --container-bg: #1e1e1e;
 
+    background-color: #121212;
+    color: #ffffff;
+}
 /* reset */
 *{
     margin: 0;
@@ -118,6 +144,7 @@ body{
     background: var(--white);
     color: var(--text-dark);
     -webkit-font-smoothing: antialiased;
+    padding-top: 80px;
 }
 
 /* accessibility */
@@ -160,7 +187,7 @@ img{
 }
 
 /* responsive utilities */
-@media(max-width:799px){
+@media(max-width:1024px){
     .section-p1{
         padding: 30px 20px;
     }
@@ -179,4 +206,142 @@ img{
         font-size: 24px;
         line-height: 32px;
     }
+}
+body.dark-theme {
+    --text-dark: #f8f6f6;
+    --text-light: #d1d1d1;
+    --bg-light: #1a1a1a;
+    --white: #121212;
+
+    background-color: #121212;
+    color: #ffffff;
+}
+body {
+    transition: background-color 0.3s ease,
+                color 0.3s ease;
+}
+.theme-toggle-item button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+}
+body.dark-theme input,
+body.dark-theme textarea,
+body.dark-theme select {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #444;
+}
+
+body.dark-theme label,
+body.dark-theme .form-group,
+body.dark-theme p,
+body.dark-theme a {
+    color: #ffffff;
+}
+body.dark-theme footer {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+body.dark-theme footer a {
+    color: #d1d1d1;
+}
+
+body.dark-theme footer p,
+body.dark-theme footer h1,
+body.dark-theme footer h2,
+body.dark-theme footer h3,
+body.dark-theme footer h4 {
+    color: #ffffff;
+}
+/* Navbar dark mode */
+body.dark-theme nav,
+body.dark-theme .navbar {
+  background-color: #1a1a1a;
+}
+
+body.dark-theme nav a,
+body.dark-theme .navbar a {
+  color: #e0e0e0;
+}
+
+/* Buttons in dark mode */
+body.dark-theme .btn,
+body.dark-theme button:not(#theme-toggle) {
+  background-color: #088178;
+  color: #ffffff;
+  border: 1px solid #066b63;
+}
+
+body.dark-theme .btn:hover,
+body.dark-theme button:not(#theme-toggle):hover {
+  background-color: #066b63;
+}
+body.dark-theme .order-tracking,
+body.dark-theme .order-card,
+body.dark-theme .order-box,
+body.dark-theme .track-box,
+body.dark-theme .order-content {
+    background-color: #1e1e1e !important;
+    border: 1px solid #333 !important;
+}
+body.dark-theme h3 {
+    color: #ffffff !important;
+}
+body.dark-theme .toast-container,
+body.dark-theme .toast,
+body.dark-theme .toast-item,
+body.dark-theme [class*="toast"] {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-theme .toast-item p,
+body.dark-theme .toast-item span,
+body.dark-theme .toast p,
+body.dark-theme .toast span {
+    color: #ffffff !important;
+}
+body.dark-theme #product1 h2,
+body.dark-theme #new-arrivals h2,
+body.dark-theme #recently-viewed h2 {
+    color: #ffffff !important;
+}
+body.dark-theme #blog-header h3 {
+    color: #ffffff !important;
+}
+body.dark-theme #blog-header h1,
+body.dark-theme #blog-header p {
+    color: #ffffff !important;
+}
+#about-app h1 a {
+    color: #1a73e8 !important;
+    text-decoration: underline;
+}
+
+body.dark-theme #about-app h1 a {
+    color: #5b9cf6 !important;
+}
+/* Dropdown button override - must be after button rule */
+body.dark-theme #profile-dropdown button {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.dark-theme #profile-dropdown button:hover {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+body.dark-theme #profile-dropdown {
+    background-color: #1e1e1e !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
 }

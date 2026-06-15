@@ -142,6 +142,27 @@ function createProductCard(
                     >
                         Add Cart
                     </button>
+
+                    <button
+    type="button"
+    class="compare-btn"
+    data-id="${
+        product.id
+    }"
+>
+    Compare
+</button>
+
+                    
+                    <button
+                        type="button"
+                        class="wishlist-btn"
+                        data-id="${product.id}"
+                        aria-label="Add to Wishlist"
+                    >
+                        <i class="${ AppUtils.getWishlist().some(item => String(item.id) === String(product.id)) ? 'fas' : 'far' } fa-heart"></i>
+                    </button>
+
                 </div>
             </div>
         </div>
@@ -189,6 +210,11 @@ function renderFeaturedProducts(
             initializeScrollAnimations();
         }
 
+        // Ensure product cards are animated only once per element
+        if (typeof addProductCardAnimations === "function") {
+            addProductCardAnimations('#featured-products');
+        }
+
         // Ensure above-the-fold cards animate
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (!reduce) {
@@ -205,6 +231,7 @@ function renderFeaturedProducts(
 
 
 
+
 // render new arrivals
 function renderNewArrivals(
     products = []
@@ -215,10 +242,12 @@ function renderNewArrivals(
         return;
     }
 
+    // Filter out featured products to match script.js logic
     const arrivals =
-        [...products]
-            .reverse()
-            .slice(0, 8);
+        products.filter(
+            (product) =>
+                Number(product.featured) !== 1
+        ).slice(0, 8);
 
     homeArrivalsContainer.innerHTML =
         arrivals.length

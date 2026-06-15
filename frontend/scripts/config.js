@@ -12,8 +12,7 @@ const isLocalhost =
 const CONFIG = {
     // api base url
     API_BASE:
-        "https://e-commerce-production-d546.up.railway.app/api",
-
+        "http://localhost:5000/api",
     // app info
     APP_NAME:
         "AnthropicBots E-Commerce",

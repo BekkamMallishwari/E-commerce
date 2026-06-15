@@ -42,6 +42,9 @@ function initializeScrollAnimations() {
 
             const el = entry.target;
 
+            // Avoid re-animating
+            if (el.classList.contains('in-view')) return;
+
             // Apply stagger if index exists
             const index = Number(el.getAttribute('data-anim-index') || '0');
             const stagger = Math.max(0, Math.min(0.06 * index, 0.6));
@@ -50,6 +53,7 @@ function initializeScrollAnimations() {
             el.classList.add('in-view');
             observer.unobserve(el);
         });
+
     }, {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -216,17 +220,38 @@ function initializeParallaxEffects() {
  * Initialize all animations
  * Exported for use in other modules
  */
+function runHeroOnceOnly() {
+    const hero = document.getElementById('hero');
+    if (!hero) return;
+
+    // Idempotent
+    if (hero.dataset.heroAnimated === '1') return;
+    hero.dataset.heroAnimated = '1';
+
+    // Add class to start/enable once-only animations
+    hero.classList.add('hero-animate-once');
+
+    // Next frame ensures initial styles applied before animation
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            hero.classList.add('page-loaded');
+        });
+    });
+}
+
 function initializeAllAnimations() {
     // Delay slightly to ensure DOM is fully loaded
     setTimeout(() => {
+        runHeroOnceOnly();
         initializeScrollAnimations();
         enhanceFeatureCards();
         animateProductsOnLoad();
         enhanceNavbarAnimations();
         enhanceButtonAnimations();
         initializeParallaxEffects();
-    }, 100);
+    }, 80);
 }
+
 
 // Auto-initialize on load
 if (document.readyState === 'loading') {

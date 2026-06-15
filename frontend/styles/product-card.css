@@ -209,3 +209,45 @@ product section
 .products-grid .pro{
     flex: 0 0 280px;
 }
+body.dark-theme .pro {
+    background-color: #1e1e1e;
+    border: 1px solid #333 ;
+}
+
+body.dark-theme .pro img {
+    background-color: #2a2a2a;
+}
+
+body.dark-theme .pro .des h5,
+body.dark-theme .pro .des h4,
+body.dark-theme .pro .des span,
+body.dark-theme .pro .des p {
+    color: #e0e0e0 ;
+}
+/* Missing dark mode fixes */
+body.dark-theme .product-image-wrapper {
+    background: #2a2a2a;
+}
+
+body.dark-theme #product1 .pro .cart,
+body.dark-theme #new-arrivals .pro .cart,
+body.dark-theme #recently-viewed .pro .cart {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #088178;
+}
+
+body.dark-theme #product1 .pro .cart:hover,
+body.dark-theme #new-arrivals .pro .cart:hover,
+body.dark-theme #recently-viewed .pro .cart:hover {
+    background: #088178;
+    color: #ffffff;
+}
+
+body.dark-theme .pro .des span {
+    color: #aaaaaa;
+}
+
+body.dark-theme .pro .des i {
+    color: rgb(243, 181, 25);
+}

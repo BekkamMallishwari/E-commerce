@@ -49,7 +49,7 @@
     font-size: 15px;
 }
 
-@media (max-width: 799px){
+@media (max-width: 1024px){
 
     #privacy-policy .policy-container{
         padding: 20px;
@@ -63,4 +63,22 @@
         font-size: 20px;
     }
 
+}
+
+/* ── DARK MODE ── */
+body.dark-theme #privacy-policy {
+    background-color: #121212;
+}
+
+body.dark-theme #privacy-policy .policy-container {
+    background-color: #1e1e1e;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme #privacy-policy h3 {
+    color: #ffffff !important;
+}
+
+body.dark-theme #privacy-policy p {
+    color: #c0c0c0 !important;
 }

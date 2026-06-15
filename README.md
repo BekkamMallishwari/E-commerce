@@ -222,71 +222,296 @@ E-commerce/
 
 ---
 
-## 🚀 Local Setup Guide
+# 🚀 Local Setup Guide
 
-### 1️⃣ Clone Repository
-```
-git clone https://github.com/your-username/E-commerce.git
+## 📋 Prerequisites
+
+Before starting, make sure you have the following installed:
+
+* Node.js (v18 or higher recommended)
+* npm
+* MySQL Server
+* Git
+* VS Code (recommended)
+
+Verify installation:
+
+```bash
+node -v
+npm -v
+mysql --version
+git --version
 ```
 
-### 2️⃣ Open Project Folder
+---
 
-```
+## 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/AnthropicBots/E-commerce.git
 cd E-commerce
 ```
 
-## ⚙️ Backend Setup
-### 3️⃣ Open Backend Folder
-```
+---
+
+# ⚙️ Backend Setup
+
+## 2️⃣ Navigate to Backend Folder
+
+```bash
 cd backend
 ```
 
-4️⃣ Install Dependencies
-```
+---
+
+## 3️⃣ Install Dependencies
+
+```bash
 npm install
 ```
 
-5️⃣ Create Environment File
-Create a .env file inside the backend/ folder using .env.example:
+Wait for all packages to install successfully.
+
+---
+
+## 4️⃣ Create MySQL Database
+
+Login to MySQL:
+
+```bash
+mysql -u root -p
 ```
+
+Enter your MySQL password when prompted.
+
+Create the database:
+
+```sql
+CREATE DATABASE ecommerce;
+```
+
+Verify database creation:
+
+```sql
+SHOW DATABASES;
+```
+
+You should see:
+
+```text
+ecommerce
+```
+
+---
+
+## 5️⃣ Import Database Schema
+
+Inside the backend folder run:
+
+```bash
+mysql -u root -p ecommerce < schema.sql
+```
+
+This command creates all required tables.
+
+---
+
+## 6️⃣ Create Environment File
+
+Create a `.env` file inside the `backend/` folder.
+
+Copy values from `.env.example`.
+
+Example:
+
+```env
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=your_password
+DB_PASSWORD=your_mysql_password
 DB_NAME=ecommerce
+
 JWT_SECRET=your_secret_key
+
 PORT=5000
 FRONTEND_URL=http://127.0.0.1:5500
 ```
 
-6️⃣ Import Database Schema
-```
-mysql -u root -p ecommerce < schema.sql
+### ⚠️ Important
+
+If your MySQL root account has a password:
+
+```env
+DB_PASSWORD=your_mysql_password
 ```
 
-7️⃣ Start Backend Server
+If your MySQL root account has no password:
+
+```env
+DB_PASSWORD=
 ```
+
+---
+
+## 7️⃣ Start Backend Server
+
+Run:
+
+```bash
 npm run dev
 ```
 
-Backend will run at:
+If the above command is unavailable:
+
+```bash
+npm start
 ```
+
+Backend will run at:
+
+```text
 http://localhost:5000
 ```
 
-## 🌐 Frontend Setup
-### 8️⃣ Open Frontend Folder
-Open the ```frontend/``` folder in VS Code.
+---
 
-### 9️⃣ Run Frontend
-Use Live Server extension or any local server.
-Example using VS Code Live Server:
-- Right click on index.html
-- Click Open with Live Server
+## 8️⃣ Verify Backend Setup
+
+A successful startup should show messages similar to:
+
+```text
+Database connected successfully
+Server running on port 5000
+```
+
+If you see these messages, your backend setup is complete.
+
+---
+
+# 🌐 Frontend Setup
+
+## 9️⃣ Open Frontend Folder
+
+Open the project in VS Code.
+
+Navigate to:
+
+```text
+frontend/
+```
+
+---
+
+## 🔟 Run Frontend
+
+Using VS Code Live Server:
+
+1. Open `index.html`
+2. Right Click
+3. Select **Open with Live Server**
 
 Frontend will run at:
-```
+
+```text
 http://127.0.0.1:5500
 ```
+
+---
+
+# 🔧 Common Setup Issues
+
+## MySQL Access Denied
+
+Error:
+
+```text
+Access denied for user 'root'@'localhost'
+```
+
+Solution:
+
+* Verify MySQL is running
+* Check `DB_USER`
+* Check `DB_PASSWORD`
+* Test login manually:
+
+```bash
+mysql -u root -p
+```
+
+---
+
+## Unknown Database 'ecommerce'
+
+Error:
+
+```text
+Unknown database 'ecommerce'
+```
+
+Solution:
+
+```sql
+CREATE DATABASE ecommerce;
+```
+
+Then import:
+
+```bash
+mysql -u root -p ecommerce < schema.sql
+```
+
+---
+
+## Cannot Find Module
+
+Error:
+
+```text
+Cannot find module ...
+```
+
+Solution:
+
+```bash
+npm install
+```
+
+inside the backend folder.
+
+---
+
+## Port Already In Use
+
+Error:
+
+```text
+EADDRINUSE
+```
+
+Solution:
+
+Change:
+
+```env
+PORT=5001
+```
+
+inside `.env`.
+
+---
+
+## Still Facing Issues?
+
+Please create a GitHub issue and include:
+
+* Operating System
+* Node.js version
+* npm version
+* Screenshot of terminal
+* Full error message
+* Steps already tried
+
+Maintainers will help you resolve the issue.
 
 ---
 

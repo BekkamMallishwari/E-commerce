@@ -179,6 +179,13 @@ function createProductCardHTML(
             >
                 Add Cart
             </button>
+            <button
+    type="button"
+    class="compare-btn"
+    data-id="${encodeURIComponent(product.id)}"
+>
+    Compare
+</button>
         </div>
     `;
 }
@@ -570,6 +577,8 @@ function renderProduct(
     );
 }
 
+
+
 // expose globally
 window.renderProduct =
     renderProduct;
@@ -585,3 +594,5 @@ window.renderProductRating =
 
 window.updateRecentlyViewed =
     updateRecentlyViewed;
+
+    window.allProducts = window.allProducts || [];

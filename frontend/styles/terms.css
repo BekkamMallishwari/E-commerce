@@ -49,8 +49,7 @@
     font-size: 15px;
 }
 
-@media (max-width: 799px){
-
+@media (max-width: 1024px){
     #terms-content .terms-container{
         padding: 20px;
     }
@@ -62,5 +61,49 @@
     #terms-content h3{
         font-size: 20px;
     }
+}
 
+/* ===========================
+   DARK MODE
+=========================== */
+body.dark-theme #terms-content {
+    background-color: #121212;
+}
+
+body.dark-theme #terms-content .terms-container {
+    background: #1e1e1e;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid #333;
+}
+
+body.dark-theme #terms-content h2 {
+    color: #088178;
+}
+
+body.dark-theme #terms-content h3 {
+    color: #ffffff;
+}
+
+body.dark-theme #terms-content p {
+    color: #d1d1d1;
+}
+
+/* ===========================
+   LIGHT MODE (explicit)
+=========================== */
+body.light-theme #terms-content .terms-container {
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme #terms-content h2 {
+    color: #088178;
+}
+
+body.light-theme #terms-content h3 {
+    color: #222;
+}
+
+body.light-theme #terms-content p {
+    color: #555;
 }

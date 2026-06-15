@@ -102,7 +102,7 @@
     color: #fff;
 }
 
-@media (max-width: 799px){
+@media (max-width: 1024px){
 
     #contact-details{
         flex-direction: column;
@@ -126,4 +126,65 @@
         width: 100%;
     }
 
+}
+
+/* ── DARK MODE ── */
+body.dark-theme #contact-header h2,
+body.dark-theme #contact-header p {
+    color: #ffffff !important;
+}
+
+body.dark-theme #contact-details .details h2,
+body.dark-theme #contact-details .details h3,
+body.dark-theme #contact-details .details span {
+    color: #f0f0f0 !important;
+}
+
+body.dark-theme #contact-details .details li p,
+body.dark-theme #contact-details .details li i {
+    color: #c0c0c0 !important;
+}
+
+body.dark-theme #form-details {
+    border-color: #3a3a3a;
+    background-color: #1e1e1e;
+}
+
+body.dark-theme #form-details form h2,
+body.dark-theme #form-details form span {
+    color: #f0f0f0 !important;
+}
+
+body.dark-theme #form-details form input,
+body.dark-theme #form-details form textarea {
+    background-color: #2a2a2a !important;
+    border-color: #3a3a3a !important;
+    color: #f0f0f0 !important;
+}
+
+body.dark-theme #form-details form input::placeholder,
+body.dark-theme #form-details form textarea::placeholder {
+    color: #888888 !important;
+}
+/* Missing dark mode fixes */
+body.dark-theme #contact-details {
+    background-color: #121212;
+}
+
+body.dark-theme #form-details form button {
+    background-color: #088178;
+    color: #ffffff;
+}
+
+/* Light mode explicit */
+body.light-theme #form-details {
+    border: 1px solid #e1e1e1;
+    background-color: #ffffff;
+}
+
+body.light-theme #form-details form input,
+body.light-theme #form-details form textarea {
+    background-color: #ffffff;
+    border-color: #e1e1e1;
+    color: #222;
 }

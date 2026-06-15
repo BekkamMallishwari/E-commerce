@@ -274,7 +274,8 @@
     font-family: inherit;
     border-bottom: 2px solid transparent;
     width: fit-content;
-    padding: 0 0 2px 0;
+    padding:4px 1px 1px;
+    height: 30px;
     transition: all 0.3s ease;
     margin-top: auto;
     cursor: pointer;
@@ -574,7 +575,7 @@
 }
 
 /* Responsive Breakpoints */
-@media (max-width: 991px) {
+@media (max-width: 1024px) {
     #blog-controls {
         padding: 40px 40px 10px 40px;
     }
@@ -610,7 +611,7 @@
         overflow-x: auto;
         padding-bottom: 8px;
         flex-wrap: nowrap;
-        scrollbar-width: none; /* Hide scrollbar for clean tab look */
+        scrollbar-width: none;
         -ms-overflow-style: none;
     }
     .category-tabs::-webkit-scrollbar {
@@ -635,4 +636,93 @@
     .modal-title {
         font-size: 24px;
     }
+}
+
+/* ── DARK MODE ── */
+body.dark-theme .category-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #3a3a3a;
+    color: #c0c0c0;
+}
+
+body.dark-theme .category-btn:hover {
+    background: rgba(8, 129, 120, 0.1);
+    color: var(--primary-color);
+}
+
+body.dark-theme .search-box input {
+    background: #1e1e1e;
+    border-color: #3a3a3a;
+    color: #f0f0f0;
+}
+
+body.dark-theme .search-box input:focus {
+    background: #252525;
+    border-color: var(--primary-color);
+}
+
+body.dark-theme .blog-card {
+    background: rgba(30, 30, 30, 0.9);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .blog-card:hover {
+    box-shadow: 0 20px 40px rgba(8, 129, 120, 0.15);
+    border-color: rgba(8, 129, 120, 0.4);
+}
+
+body.dark-theme .blog-card h4 {
+    color: #f0f0f0;
+}
+
+body.dark-theme .blog-card p {
+    color: #a0a0a0;
+}
+
+body.dark-theme .read-more-btn {
+    color: #d0d0d0;
+}
+
+body.dark-theme .blog-modal-content {
+    background: #1e1e1e;
+    border-color: #333;
+    box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-theme .blog-modal-close {
+    background: #2a2a2a;
+    color: #f0f0f0;
+}
+
+body.dark-theme .modal-title {
+    color: #f0f0f0;
+}
+
+body.dark-theme .modal-author-info {
+    border-color: #333;
+}
+
+body.dark-theme .author-name {
+    color: #f0f0f0;
+}
+
+body.dark-theme .modal-share {
+    border-color: #3a3a3a;
+}
+
+body.dark-theme .modal-share span {
+    color: #f0f0f0;
+}
+
+body.dark-theme .share-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #c0c0c0;
+}
+
+body.dark-theme .blog-img {
+    background-color: #2a2a2a;
+}
+body.dark-theme .read-more-btn {
+    color: #ffffff !important;
 }
