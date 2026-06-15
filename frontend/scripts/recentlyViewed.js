@@ -1,7 +1,8 @@
 import {
     getJSON,
     $,
-    defaultImage
+    defaultImage,
+    escapeHTML
 } from "./utils.js";
 
 // LOAD RECENTLY VIEWED PRODUCTS
@@ -52,10 +53,10 @@ if (elements.recentContainer) {
             div.innerHTML = `
                 <img
                     src="${defaultImage(product.image)}"
-                    alt="${product.name || "Product"}"
+                    alt="${escapeHTML(product.name || "Product")}"
                 >
                 <h4>
-                    ${product.name || "Product"}
+                    ${escapeHTML(product.name || "Product")}
                 </h4>
                 <p>
                     ₹${(
