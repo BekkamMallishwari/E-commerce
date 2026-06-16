@@ -121,8 +121,8 @@ const allowedOrigins = [
 
   FRONTEND_URL,
 
-    // vercel deployments
-    "https://e-commerce-git-main-bhuvanshs-projects.vercel.app",
+  // vercel deployments
+  "https://e-commerce-git-main-bhuvanshs-projects.vercel.app",
 
   "https://www.bhuvansh.xyz",
 ];
@@ -306,24 +306,10 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 // start server
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 
-        console.log(
-            `Server running on port ${PORT}`
-        );
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
-        console.log(
-            `Environment: ${
-                process.env.NODE_ENV
-                || "development"
-            }`
-        );
-
-        console.log(
-            `Frontend URL: ${FRONTEND_URL}`
-        );
-    }
-);
+  console.log(`Frontend URL: ${FRONTEND_URL}`);
+});
