@@ -121,8 +121,6 @@ const allowedOrigins = [
 
   FRONTEND_URL,
 
-    "https://bekkammallishwari.github.io",
-
     // vercel deployments
     "https://e-commerce-git-main-bhuvanshs-projects.vercel.app",
 
