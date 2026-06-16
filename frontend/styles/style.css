@@ -211,3 +211,50 @@ body.dark-theme .suggestion-item:hover {
         order: 2;
     }
 }
+
+/* ============================================================
+   NEW: PASSWORD STRENGTH METER (Issue #166)
+   ============================================================ */
+#password-strength {
+    margin-top: 12px;
+    font-size: 14px;
+    text-align: left;
+    width: 100%;
+}
+
+#strength-bar {
+    width: 0%;
+    height: 6px;
+    background-color: #ddd;
+    border-radius: 4px;
+    margin: 6px 0 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+#strength-text {
+    font-weight: 600;
+}
+
+#strength-hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    color: #666;
+    min-height: 20px;
+}
+
+/* Bar colors */
+.weak { background-color: #ff4d4d; }
+.medium { background-color: #ffa64d; }
+.strong { background-color: #4caf50; }
+
+/* Text colors */
+.strength-weak { color: #ff4d4d; }
+.strength-medium { color: #ffa64d; }
+.strength-strong { color: #4caf50; }
+
+/* Disabled button style */
+#signup-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
