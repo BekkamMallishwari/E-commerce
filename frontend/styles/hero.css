@@ -452,11 +452,6 @@ responsive layout
         margin-top: 70px;
         padding: 0 20px;
     }
-
-
-    #hero h1{
-        font-size: 38px;
-    }
     #hero h1{  
         font-size: 1.2rem;
         line-height: 1.2rem;
