@@ -171,6 +171,17 @@ const createOrderService = async (connection, orderData) => {
             await connection.query(stockQuery, [item.qty, item.id]);
         }
 
+        // record purchase interaction
+        if (user_id) {
+            for (const item of validatedItems) {
+                const interactionQuery = `
+                    INSERT INTO user_interactions (user_id, product_id, interaction_type)
+                    VALUES (?, ?, ?)
+                `;
+                await connection.query(interactionQuery, [user_id, item.id, 'purchase']);
+            }
+        }
+
         await connection.commit();
 
         return {

@@ -49,6 +49,7 @@ const wishlistRoutes =
     require(
         "./routes/wishlistRoutes"
     );
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 const pincodeRoutes = require("./routes/pincodeRoutes");
 
@@ -264,8 +265,8 @@ app.use(
     wishlistRoutes
 );
 
+app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/pincode", pincodeRoutes);
-
 // 404 handler
 app.use((req, res) => {
   return res.status(404).json({

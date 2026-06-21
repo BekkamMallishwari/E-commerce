@@ -261,7 +261,7 @@ const signup =
                     cleanName,
                     cleanEmail,
                     hashedPassword,
-                    "user"
+                    "customer"
                 ]
             );
 
