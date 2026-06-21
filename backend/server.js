@@ -139,7 +139,11 @@ const allowedOrigins = [
 
   // production
   "https://e-commerce-git-main-bhuvanshs-projects.vercel.app",
-  "https://www.bhuvansh.xyz",
+
+    "https://www.bhuvansh.xyz",
+    
+    // local file execution
+    "null"
 ];
 
 // cors
