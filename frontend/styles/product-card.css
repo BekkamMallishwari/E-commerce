@@ -251,7 +251,7 @@ product section
     display: flex;
     flex-wrap: wrap;
     gap: 1.25rem;
-    justify-content: cent;
+    justify-content: center;
     align-items: stretch;
 }
 
