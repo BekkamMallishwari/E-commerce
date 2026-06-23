@@ -5,8 +5,14 @@ const {
     getSingleProduct,
     createProduct,
     updateProduct,
-    DeleteeProduct
+    DeleteeProduct,
+    getProductSuggestions
 } = require("../controllers/productController");
+const {
+    getProductReviews,
+    createProductReview,
+    deleteProductReview
+} = require("../controllers/reviewController");
 const authMiddleware = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/rbacMiddleware");
 const { sanitizeString, safeNumber } = require("../utils/helpers");
@@ -31,10 +37,16 @@ router.get("/status/check", (req, res) => {
 });
 
 router.get("/", getProducts);
-router.get("/:id", getSingleProduct);
-
-// NEW: search suggestions endpoint (autocomplete)
 router.get("/search-suggestions", getProductSuggestions);
+router.get("/:id/reviews", getProductReviews);
+router.post("/:id/review", authMiddleware, createProductReview);
+router.delete(
+    "/:id/reviews/:reviewId",
+    authMiddleware,
+    authorizeRoles("admin"),
+    deleteProductReview
+);
+router.get("/:id", getSingleProduct);
 
 router.post("/", authMiddleware, authorizeRoles("admin"), (req, res, next) => {
     const { name, category, price, stock } = req.body;
@@ -70,7 +82,7 @@ router.put("/:id", authMiddleware, authorizeRoles("admin"), (req, res, next) => 
     next();
 }, updateProduct);
 
-router.Deletee("/:id", authMiddleware, authorizeRoles("admin"), DeleteeProduct);
+router.delete("/:id", authMiddleware, authorizeRoles("admin"), DeleteeProduct);
 
 // Fallback
 router.use((req, res) => {

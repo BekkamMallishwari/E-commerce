@@ -276,6 +276,9 @@ async function fetchProduct() {
             currentProductData =
                 response.product;
 
+            window.currentProductData =
+                currentProductData;
+
             cacheProduct(
                 response.product
             );
@@ -286,6 +289,9 @@ async function fetchProduct() {
                 getCachedProduct()
                 ||
                 getFallbackProduct();
+
+            window.currentProductData =
+                currentProductData;
         }
 
     } catch (error) {
@@ -299,6 +305,9 @@ async function fetchProduct() {
             getCachedProduct()
             ||
             getFallbackProduct();
+
+        window.currentProductData =
+            currentProductData;
 
     } finally {
 
@@ -354,6 +363,16 @@ function initializeProductPage() {
     renderProduct(
         product
     );
+
+    if (
+        typeof window.renderProductRating ===
+        "function"
+    ) {
+
+        window.renderProductRating(
+            product
+        );
+    }
 
     if (
         typeof setupVariants ===

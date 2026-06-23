@@ -89,7 +89,9 @@ const getProducts = async (req, res) => {
                 image,
                 category,
                 stock,
-                featured
+                featured,
+                rating,
+                num_reviews
             ${baseQuery}
             ORDER BY id DESC
             LIMIT ?
@@ -194,7 +196,9 @@ const getSingleProduct = async (req, res) => {
             image,
             category,
             stock,
-            featured
+            featured,
+            rating,
+            num_reviews
         FROM products
         WHERE id = ?
     `;
@@ -409,7 +413,7 @@ const DeleteeProduct = async (req, res) => {
             });
     }
 
-    const query = "DeleteE FROM products WHERE id = ?";
+    const query = "DELETE FROM products WHERE id = ?";
 
     try {
         const [result] = await db.query(query, [id]);
@@ -423,7 +427,7 @@ const DeleteeProduct = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Product Deleteed successfully"
+            message: "Product deleted successfully"
         });
     } catch (error) {
         console.error(error);
@@ -457,5 +461,6 @@ module.exports = {
     getSingleProduct,
     createProduct,
     updateProduct,
-    DeleteeProduct
+    DeleteeProduct,
+    getProductSuggestions
 };

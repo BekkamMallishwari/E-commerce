@@ -249,6 +249,13 @@ const refreshAccessToken =
 
         try {
 
+            const refreshToken = localStorage.getItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN);
+            
+            if (!refreshToken) {
+                clearAuthData();
+                return null;
+            }
+
             const response =
                 await fetch(
                     `${CONFIG.API_BASE}/auth/refresh-token`,
@@ -262,8 +269,8 @@ const refreshAccessToken =
                             "Content-Type":
                                 "application/json"
                         },
-                        credentials: "include",
-                        body: JSON.stringify({})
+                        credentials: "omit",
+                        body: JSON.stringify({ refreshToken })
                     }
                 );
 
@@ -282,7 +289,13 @@ const refreshAccessToken =
                 return null;
             }
 
-            // save user
+            // save tokens and user
+            if (data.accessToken) {
+                localStorage.setItem(CONFIG.STORAGE_KEYS.TOKEN, data.accessToken);
+            }
+            if (data.refreshToken) {
+                localStorage.setItem(CONFIG.STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+            }
             if (data.user) {
                 setJSON(CONFIG.STORAGE_KEYS.USER, data.user);
             }
@@ -336,10 +349,13 @@ const apiRequest =
 
         try {
 
+            const token = localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN);
             const headers = {
 
                 "Content-Type":
                     "application/json",
+
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
 
                 ...(options.headers || {})
             };
@@ -844,9 +860,6 @@ const saveWishlist = (
     );
 };
 
-const getToken = () => {
-    return getUser() ? "session_active" : null;
-};
 
 // app utils assignment
 window.AppUtils = {
@@ -878,7 +891,6 @@ window.AppUtils = {
     saveCart,
     getWishlist,
     saveWishlist,
-    getToken,
     requireLogin,
     loadUserCollections
 };
