@@ -182,6 +182,10 @@ function createProductCard(
     const stock =
         Number(product.stock) || 0;
 
+    const isWishlisted = (wishlistIds instanceof Set)
+        ? wishlistIds.has(String(product.id))
+        : AppUtils.getWishlist().some(item => String(item.id) === String(product.id));
+
     return `
         <div
             class="pro"
@@ -232,7 +236,7 @@ function createProductCard(
                     : `
                         <div style="position: absolute; bottom: 20px; right: 12px; display: flex; gap: 8px; z-index: 2;">
                             <button class="wishlist-btn-shop cart" data-id="${product.id}" aria-label="Add to Wishlist" style="position: relative; bottom: 0; right: 0;">
-                                <i class="${ (wishlistIds ? wishlistIds.has(String(product.id)) : AppUtils.getWishlist().some(item => String(item.id) === String(product.id))) ? 'fas' : 'far' } fa-heart"></i>
+                                <i class="${ isWishlisted ? 'fas' : 'far' } fa-heart"></i>
                             </button>
                             <button class="add-to-cart-icon cart" aria-label="Add to cart" style="position: relative; bottom: 0; right: 0;">
                                 <i class="fal fa-shopping-cart"></i>
@@ -258,7 +262,7 @@ function renderProducts(products = []) {
     const displayList = products;
 
     const fragment = document.createDocumentFragment();
-    const wishlistIds = new Set(AppUtils.getWishlist().map(item => String(item.id)));
+    const wishlistIds = new Set(AppUtils.getWishlist().map((item) => String(item.id)));
 
     displayList.forEach((product) => {
         const wrapper = document.createElement('div');

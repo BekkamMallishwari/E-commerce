@@ -452,10 +452,12 @@ const getProductSuggestions = async (req, res) => {
     }
 };
 
+
 module.exports = {
     getProducts,
     getSingleProduct,
     createProduct,
     updateProduct,
-    DeleteeProduct
+    DeleteeProduct,
+    getProductSuggestions
 };
