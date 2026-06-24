@@ -52,10 +52,10 @@ if (elements.recentContainer) {
             div.innerHTML = `
                 <img
                     src="${defaultImage(product.image)}"
-                    alt="${String(product.name || "Product")}"
+                    alt="${AppUtils.escapeHTML(product.name || "Product")}"
                 >
                 <h4>
-                    ${String(product.name || "Product")}
+                    ${AppUtils.escapeHTML(product.name || "Product")}
                 </h4>
                 <p>
                     ₹${(

@@ -244,6 +244,42 @@
             product
         );
     }
+    function saveRecentlyViewed(
+    product
+) {
+
+    if (!product) {
+        return;
+    }
+
+    const recentlyViewed =
+        JSON.parse(
+            localStorage.getItem(
+                "recentlyViewed"
+            )
+        ) || [];
+
+    const filtered =
+        recentlyViewed.filter(
+            (item) =>
+                Number(item.id) !==
+                Number(product.id)
+        );
+
+    filtered.unshift({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image
+    });
+
+    localStorage.setItem(
+        "recentlyViewed",
+        JSON.stringify(
+            filtered.slice(0, 10)
+        )
+    );
+}
 
     // fetch product
     async function fetchProduct() {
@@ -275,9 +311,14 @@
 
                 currentProductData =
                     response.product;
-                saveRecentlyViewed(
-                    response.product
-                );
+                if (
+                    typeof saveRecentlyViewed ===
+                     "function"
+                ) {
+                 saveRecentlyViewed(
+                     response.product
+                    );
+                }
                 cacheProduct(
                     response.product
                 );
