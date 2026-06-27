@@ -138,6 +138,9 @@ const createOrder =
                     }
                 );
 
+            // commit transaction
+            await connection.commit();
+
             return res.status(201)
                 .json({
                     success: true,
