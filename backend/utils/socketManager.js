@@ -4,10 +4,10 @@ const chatService = require("../services/chat.service");
 
 let io;
 
-const initSocket = (server) => {
+const initSocket = (server, allowedOrigins) => {
     io = new Server(server, {
         cors: {
-            origin: ["http://localhost:5500", "http://127.0.0.1:5500"],
+            origin: allowedOrigins,
             methods: ["GET", "POST"],
             credentials: true
         }

@@ -43,8 +43,6 @@ const app = express();
 const http = require("http");
 const server = http.createServer(app);
 const { initSocket } = require("./utils/socketManager");
-initSocket(server);
-
 // constants
 const PORT = Number(process.env.PORT) || 5000;
 
@@ -125,6 +123,9 @@ const allowedOrigins = [
 
     "https://www.bhuvansh.xyz"
 ];
+
+// initialize websocket server with CORS
+initSocket(server, allowedOrigins);
 
 // cors
 app.use(
