@@ -1,39 +1,19 @@
-/* =============================
-current user
-============================= */
-
-const socialUser =
-    JSON.parse(
-        localStorage.getItem(
-            "socialUser"
-        )
-    );
-
-const normalUser =
+/* current user */
+const currentUser =
     AppUtils.getJSON(
         "user"
     );
 
-const currentUser =
-    socialUser || normalUser;
-
 if (!currentUser) {
-
     window.location.href =
         "signin.html";
 }
 
-/* =============================
-storage key
-============================= */
-
+/* storage key */
 const PROFILE_KEY =
     `profile_${currentUser.email}`;
 
-/* =============================
-elements
-============================= */
-
+/* elements */
 const profileElements = {
     sidebarName:
         document.getElementById(
@@ -126,23 +106,15 @@ const profileElements = {
         )
 };
 
-/* =============================
-default avatar
-============================= */
-
+/* default avatar */
 function getDefaultAvatar(
     name = "User"
 ) {
-
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=088178&color=fff`;
 }
 
-/* =============================
-view mode
-============================= */
-
+/* view mode */
 function showViewMode() {
-
     profileElements.profileView.style.display =
         "block";
 
@@ -150,12 +122,8 @@ function showViewMode() {
         "none";
 }
 
-/* =============================
-edit mode
-============================= */
-
+/*edit mode*/
 function showEditMode() {
-
     profileElements.profileView.style.display =
         "none";
 
@@ -163,12 +131,8 @@ function showEditMode() {
         "block";
 }
 
-/* =============================
-load profile
-============================= */
-
+/* load profile */
 function loadProfile() {
-
     const savedProfile =
         AppUtils.getJSON(
             PROFILE_KEY
@@ -208,7 +172,6 @@ function loadProfile() {
     };
 
     /* sidebar */
-
     profileElements.sidebarName.textContent =
         profile.name;
 
@@ -219,7 +182,6 @@ function loadProfile() {
         profile.avatar;
 
     /* view */
-
     profileElements.viewName.textContent =
         profile.name;
 
@@ -252,7 +214,6 @@ function loadProfile() {
         profile.bio;
 
     /* mode */
-
     const hasProfileData =
 
         savedProfile.name
@@ -261,39 +222,26 @@ function loadProfile() {
         || savedProfile.bio;
 
     if (hasProfileData) {
-
         showViewMode();
-
     } else {
-
         showEditMode();
     }
 }
 
-/* =============================
-edit profile
-============================= */
-
+/* edit profile */
 profileElements.editBtn?.addEventListener(
     "click",
     () => {
-
         showEditMode();
     }
 );
 
-/* =============================
-save profile
-============================= */
-
+/* save profile */
 profileElements.profileForm?.addEventListener(
     "submit",
     (event) => {
-
         event.preventDefault();
-
         const profile = {
-
             name:
                 profileElements.profileName.value.trim(),
 
@@ -330,21 +278,16 @@ profileElements.profileForm?.addEventListener(
 
                 window.location.href =
                     "index.html";
-
             },
             1000
         );
     }
 );
 
-/* =============================
-avatar upload
-============================= */
-
+/* avatar upload */
 profileElements.avatarInput?.addEventListener(
     "change",
     (event) => {
-
         const file =
             event.target.files?.[0];
 
@@ -368,14 +311,10 @@ profileElements.avatarInput?.addEventListener(
     }
 );
 
-/* =============================
-init
-============================= */
-
+/* init */
 document.addEventListener(
     "DOMContentLoaded",
     () => {
-
         loadProfile();
     }
 );

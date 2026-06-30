@@ -129,12 +129,10 @@ async function fetchProducts(
                 `/products?${params.toString()}`
             );
 
-        if (!data.success) {
-            renderEmptyState(data.message || "Failed to load products.");
-            return;
-        }
-
-        currentProducts = Array.isArray(data.products) ? data.products : [];
+        currentProducts =
+            data.success && Array.isArray(data.products)
+                ? data.products
+                : [];
 
         // If backend returned no products for the selected category/search,
         // fall back to local sample products so the shop isn't empty.
@@ -146,10 +144,8 @@ async function fetchProducts(
                 ? fallbackProducts
                 : fallbackProducts.filter(p => categoriesMatch(p.category, currentCategory));
 
-            if (fallback.length > 0) {
-                currentProducts = fallback;
-                totalPages = 1;
-            }
+            currentProducts = fallback;
+            totalPages = 1;
         }
 
         totalPages =
@@ -170,9 +166,27 @@ async function fetchProducts(
             error
         );
 
-        renderEmptyState(
-            "Failed to load products."
-        );
+        const normCat =
+            normalizeCategoryString(
+                currentCategory
+            );
+
+        currentProducts =
+            normCat === "all"
+                ? fallbackProducts
+                : fallbackProducts.filter(
+                    (product) =>
+                        categoriesMatch(
+                            product.category,
+                            currentCategory
+                        )
+                );
+
+        totalPages =
+            1;
+
+        applySorting();
+        renderPagination();
     }
 }
 
@@ -405,31 +419,23 @@ function setupProductCard(
                 }
 
                 // fallback cart
-                let cart =
-                    AppUtils.getCart();
-
-                const existingIndex =
-                    cart.findIndex(
-                        (p) =>
-                            p.id ===
-                            item.id
-                    );
+                AppUtils.addCartItem(
+                    item
+                );
 
                 if (
-                    existingIndex >= 0
+                    typeof updateCartCount ===
+                    "function"
                 ) {
-                    cart[
-                        existingIndex
-                    ].qty += 1;
-                } else {
-                    cart.push(
-                        item
-                    );
+                    updateCartCount();
                 }
 
-                AppUtils.saveCart(
-                    cart
-                );
+                if (
+                    typeof renderCartDrawer ===
+                    "function"
+                ) {
+                    renderCartDrawer();
+                }
 
                 AppUtils.notify(
                     "Added to cart 🛍️",

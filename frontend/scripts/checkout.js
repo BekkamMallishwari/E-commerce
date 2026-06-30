@@ -2,6 +2,12 @@
 const cart =
     AppUtils.getCart();
 
+const appliedCoupon =
+    AppUtils.getJSON(
+        "appliedCoupon",
+        ""
+    );
+
 // require authentication
 const currentUser =
     AppUtils.requireAuth();
@@ -196,49 +202,10 @@ function safeQty(
 // CALCULATE TOTALS
 function calculateTotals() {
 
-    const subtotal =
-        cart.reduce(
-            (
-                sum,
-                item
-            ) => {
-
-                return (
-                    sum +
-                    (
-                        safePrice(
-                            item.price
-                        ) *
-                        safeQty(
-                            item.qty
-                        )
-                    )
-                );
-            },
-            0
-        );
-
-    const tax =
-        subtotal * 0.18;
-
-    const shipping =
-        subtotal > 0
-        &&
-        subtotal < 999
-            ? 49
-            : 0;
-
-    const total =
-        subtotal +
-        tax +
-        shipping;
-
-    return {
-        subtotal,
-        tax,
-        shipping,
-        total
-    };
+    return AppUtils.calculateCartTotals(
+        cart,
+        appliedCoupon
+    );
 }
 
 // RENDER CHECKOUT
@@ -637,8 +604,10 @@ if (
                     );
 
                     // clear cart
-                    AppUtils.saveCart(
-                        []
+                    AppUtils.clearCart();
+
+                    AppUtils.removeStorage(
+                        "appliedCoupon"
                     );
 
                     // update ui

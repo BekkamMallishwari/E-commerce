@@ -160,11 +160,8 @@ function addProductToCart() {
         return;
     }
 
-    const cart =
-        AppUtils.getCart();
-
     const existing =
-        cart.find(
+        AppUtils.getCart().find(
             (item) => {
                 return (
                     String(item.id)
@@ -182,32 +179,23 @@ function addProductToCart() {
             }
         );
 
+    const nextQty =
+        (
+            existing
+                ? existing.qty
+                : 0
+        ) + product.qty;
+
     if (
-        existing
+        !validateStock(
+            nextQty
+        )
     ) {
-        const updatedQty =
-            existing.qty +
-            product.qty;
-
-        if (
-            !validateStock(
-                updatedQty
-            )
-        ) {
-            return;
-        }
-
-        existing.qty =
-            updatedQty;
-
-    } else {
-        cart.push(
-            product
-        );
+        return;
     }
 
-    AppUtils.saveCart(
-        cart
+    AppUtils.addCartItem(
+        product
     );
 
     if (
@@ -223,6 +211,14 @@ function addProductToCart() {
     ) {
 
         renderCartDrawer();
+    }
+
+    if (
+        typeof openCartDrawer ===
+        "function"
+    ) {
+
+        openCartDrawer();
     }
 
     AppUtils.notify(
