@@ -125,11 +125,72 @@ const elements = {
             "address"
         ),
 
+    addressCounter:
+        document.getElementById(
+            "address-char-count"
+        ),
+
     placeOrderBtn:
         document.querySelector(
             '#checkout-form button[type="submit"]'
         )
 };
+
+const ADDRESS_LIMIT = 250;
+
+function updateAddressCharacterCount() {
+
+    if (
+        !elements.address ||
+        !elements.addressCounter
+    ) {
+        return;
+    }
+
+    const length =
+        elements.address.value.length;
+
+    elements.addressCounter.textContent =
+        length;
+
+    const counter =
+        elements.addressCounter.parentElement;
+
+    if (
+        length >= (ADDRESS_LIMIT - 20)
+    ) {
+
+        counter.classList.add(
+            "limit-reached"
+        );
+
+        elements.address.classList.add(
+            "limit-reached"
+        );
+
+    } else {
+
+        counter.classList.remove(
+            "limit-reached"
+        );
+
+        elements.address.classList.remove(
+            "limit-reached"
+        );
+    }
+}
+
+if (
+    elements.address
+) {
+
+    updateAddressCharacterCount();
+
+    elements.address.addEventListener(
+        "input",
+        updateAddressCharacterCount
+    );
+}
 
 // escape html
 function escapeHTML(
@@ -680,3 +741,5 @@ if (
         }
     );
 }
+
+

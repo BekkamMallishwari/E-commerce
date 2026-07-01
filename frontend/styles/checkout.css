@@ -226,6 +226,22 @@
     font-weight: 700;
 }
 
+.character-counter {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #666;
+    text-align: right;
+}
+
+.character-counter.limit-reached {
+    color: #d32f2f;
+    font-weight: 600;
+}
+
+textarea.limit-reached {
+    border: 2px solid #d32f2f;
+}
+
 @media (max-width: 1024px){
 
     #checkout-page{
