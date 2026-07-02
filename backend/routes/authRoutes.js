@@ -1,9 +1,8 @@
-const express =
-    require("express");
+// backend/routes/authRoutes.js
+const express = require("express");
+const router = express.Router();
 
-const router =
-    express.Router();
-
+// ======================== CONTROLLERS ========================
 const {
     signup,
     verifySignup,
@@ -12,111 +11,122 @@ const {
     resetPassword,
     refreshAccessToken,
     getMe
-} = require(
-    "../controllers/authController"
-);
+} = require("../controllers/authController");
 
-const authMiddleware =
-    require(
-        "../middleware/authMiddleware"
-    );
+// ======================== MIDDLEWARE ========================
+const authMiddleware = require("../middleware/authMiddleware");
+const { 
+    signupLimiter, 
+    loginLimiter, 
+    forgotPasswordLimiter, 
+    refreshTokenLimiter 
+} = require("../middleware/rateLimiter");
+const { verifyHumanChallenge } = require("../middleware/behavioralCaptcha");
 
-const db =
-    require(
-        "../config/db"
-    ).promise;
+// ======================== DATABASE ========================
+const db = require("../config/db").promise;
 
-const {
-    sanitizeString
-} = require(
-    "../utils/helpers"
-);
-const { signupLimiter, loginLimiter, forgotPasswordLimiter, refreshTokenLimiter } = require("../middleware/rateLimiter");
+// ======================== UTILITIES ========================
+const { sanitizeString } = require("../utils/helpers");
 
-// auth api status
-router.get(
-    "/status",
-    (
-        req,
-        res
-    ) => {
+// ======================== ENVIRONMENT VALIDATION ========================
+if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is not set");
+}
 
-        res.status(200)
-            .json({
+// ======================== HELPER FUNCTIONS ========================
 
-                success: true,
-
-                message:
-                    "Auth API running"
-            });
+/**
+ * Validate required fields in request body
+ */
+function validateRequiredFields(req, res, fields) {
+    const missing = fields.filter(field => !sanitizeString(req.body[field]));
+    
+    if (missing.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: `${missing.join(', ')} is/are required`
+        });
     }
-);
+    return null;
+}
 
-// signup
+/**
+ * Apply behavioral CAPTCHA check
+ */
+function applyCaptchaCheck(req, res, next) {
+    if (process.env.ENABLE_BEHAVIORAL_CAPTCHA === 'true') {
+        const captchaResult = verifyHumanChallenge(req);
+        
+        if (!captchaResult.passed) {
+            console.warn(`🛡️ CAPTCHA failed for ${req.ip} on ${req.path}: ${captchaResult.reason}`);
+            
+            const statusCode = captchaResult.reason === 'rate_limit_exceeded' ? 429 : 403;
+            return res.status(statusCode).json({
+                success: false,
+                message: captchaResult.reason === 'rate_limit_exceeded' 
+                    ? 'Too many requests. Please slow down.' 
+                    : 'Automated access detected. Please verify you are human.',
+                retryAfter: captchaResult.retryAfter || 60,
+                score: captchaResult.score
+            });
+        }
+    }
+    next();
+}
+
+// ======================== ROUTES ========================
+
+/**
+ * GET /api/auth/status
+ * Check auth API status
+ */
+router.get("/status", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Auth API running",
+        timestamp: new Date().toISOString(),
+        version: "2.0.0"
+    });
+});
+
+/**
+ * POST /api/auth/signup
+ * Register new user
+ */
 router.post(
     "/signup",
     signupLimiter,
-    (
-        req,
-        res,
-        next
-    ) => {
+    applyCaptchaCheck,
+    (req, res, next) => {
+        const { name, email, password } = req.body;
 
-        const {
-            name,
-            email,
-            password
-        } = req.body;
+        // Validate all required fields
+        const validationError = validateRequiredFields(req, res, ['name', 'email', 'password']);
+        if (validationError) return validationError;
 
-        // validate name
-        if (
-            !sanitizeString(
-                name
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Name is required"
-                });
+        // Additional validations
+        if (name.length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: "Name must be at least 2 characters long"
+            });
         }
 
-        // validate email
-        if (
-            !sanitizeString(
-                email
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Email is required"
-                });
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters long"
+            });
         }
 
-        // validate password
-        if (
-            !sanitizeString(
-                password
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Password is required"
-                });
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
         }
 
         next();
@@ -124,67 +134,54 @@ router.post(
     signup
 );
 
-// verify signup
+/**
+ * POST /api/auth/verify-signup
+ * Verify OTP for signup
+ */
 router.post(
     "/verify-signup",
     signupLimiter,
+    applyCaptchaCheck,
     (req, res, next) => {
         const { email, otp } = req.body;
-        if (!sanitizeString(email) || !sanitizeString(otp)) {
-            return res.status(400).json({ success: false, message: "Email and OTP are required" });
+        
+        const validationError = validateRequiredFields(req, res, ['email', 'otp']);
+        if (validationError) return validationError;
+
+        // OTP should be 6 digits
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP must be 6 digits"
+            });
         }
+
         next();
     },
     verifySignup
 );
 
-// login
+/**
+ * POST /api/auth/login
+ * User login
+ */
 router.post(
     "/login",
     loginLimiter,
-    (
-        req,
-        res,
-        next
-    ) => {
+    applyCaptchaCheck,
+    (req, res, next) => {
+        const { email, password } = req.body;
 
-        const {
-            email,
-            password
-        } = req.body;
+        const validationError = validateRequiredFields(req, res, ['email', 'password']);
+        if (validationError) return validationError;
 
-        // validate email
-        if (
-            !sanitizeString(
-                email
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Email is required"
-                });
-        }
-
-        // validate password
-        if (
-            !sanitizeString(
-                password
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Password is required"
-                });
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
         }
 
         next();
@@ -192,62 +189,97 @@ router.post(
     login
 );
 
-// forgot password
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset OTP
+ */
 router.post(
     "/forgot-password",
     forgotPasswordLimiter,
+    applyCaptchaCheck,
     (req, res, next) => {
         const { email } = req.body;
-        if (!sanitizeString(email)) {
-            return res.status(400).json({ success: false, message: "Email is required" });
+        
+        const validationError = validateRequiredFields(req, res, ['email']);
+        if (validationError) return validationError;
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
         }
+
         next();
     },
     forgotPassword
 );
 
-// reset password
+/**
+ * POST /api/auth/reset-password
+ * Reset password with OTP
+ */
 router.post(
     "/reset-password",
     forgotPasswordLimiter,
+    applyCaptchaCheck,
     (req, res, next) => {
         const { userId, otp, newPassword } = req.body;
-        if (!sanitizeString(userId) || !sanitizeString(otp) || !sanitizeString(newPassword)) {
-            return res.status(400).json({ success: false, message: "User ID, OTP, and New Password are required" });
+
+        const validationError = validateRequiredFields(req, res, ['userId', 'otp', 'newPassword']);
+        if (validationError) return validationError;
+
+        // UserId should be a number
+        if (isNaN(Number(userId))) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID format"
+            });
         }
+
+        // OTP should be 6 digits
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP must be 6 digits"
+            });
+        }
+
+        // Password should be strong enough
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters long"
+            });
+        }
+
         next();
     },
     resetPassword
 );
 
-// refresh access token
+/**
+ * POST /api/auth/refresh-token
+ * Refresh access token
+ */
 router.post(
     "/refresh-token",
     refreshTokenLimiter,
-    (
-        req,
-        res,
-        next
-    ) => {
+    applyCaptchaCheck,
+    (req, res, next) => {
+        const { refreshToken } = req.body;
 
-        const {
-            refreshToken
-        } = req.body;
+        const validationError = validateRequiredFields(req, res, ['refreshToken']);
+        if (validationError) return validationError;
 
-        if (
-            !sanitizeString(
-                refreshToken
-            )
-        ) {
-
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Refresh token required"
-                });
+        // Refresh token should be a valid JWT format
+        if (typeof refreshToken !== 'string' || refreshToken.split('.').length !== 3) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid refresh token format"
+            });
         }
 
         next();
@@ -255,80 +287,211 @@ router.post(
     refreshAccessToken
 );
 
-// logout
+/**
+ * POST /api/auth/logout
+ * Logout user
+ */
 router.post(
     "/logout",
     authMiddleware,
-    async (
-        req,
-        res
-    ) => {
-
+    async (req, res) => {
         try {
-
             await db.query(
-                `
-                    UPDATE users
-                    SET refresh_token = NULL
-                    WHERE id = ?
-                `,
-                [
-                    req.user.id
-                ]
+                `UPDATE users 
+                 SET refresh_token = NULL, 
+                     last_logout = NOW() 
+                 WHERE id = ?`,
+                [req.user.id]
             );
 
-            return res.status(200)
-                .json({
+            // Clear cookies if using cookie-based auth
+            res.clearCookie('accessToken');
+            res.clearCookie('refreshToken');
 
-                    success: true,
+            console.log(`🔓 User ${req.user.id} logged out successfully`);
 
-                    message:
-                        "Logged out successfully"
-                });
+            return res.status(200).json({
+                success: true,
+                message: "Logged out successfully",
+                timestamp: new Date().toISOString()
+            });
 
         } catch (error) {
-
-            console.error(
-                "LOGOUT ERROR:",
-                error
-            );
-
-            return res.status(500)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Logout failed"
-                });
+            console.error("❌ LOGOUT ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Logout failed. Please try again."
+            });
         }
     }
 );
 
-// current user
+/**
+ * GET /api/auth/me
+ * Get current user information
+ */
 router.get(
     "/me",
     authMiddleware,
     getMe
 );
 
-// route fallback
-router.use(
-    (
-        req,
-        res
-    ) => {
-
-        res.status(404)
-            .json({
-
-                success: false,
-
-                message:
-                    "Auth route not found"
-            });
+/**
+ * POST /api/auth/validate-token
+ * Validate if token is still active
+ */
+router.post(
+    "/validate-token",
+    authMiddleware,
+    (req, res) => {
+        res.status(200).json({
+            success: true,
+            message: "Token is valid",
+            user: {
+                id: req.user.id,
+                email: req.user.email,
+                role: req.user.role,
+                isTrustedAgent: req.isTrustedAgent || false
+            }
+        });
     }
 );
 
-module.exports =
-    router;
+/**
+ * POST /api/auth/change-password
+ * Change password (authenticated)
+ */
+router.post(
+    "/change-password",
+    authMiddleware,
+    applyCaptchaCheck,
+    async (req, res) => {
+        try {
+            const { currentPassword, newPassword } = req.body;
+
+            if (!sanitizeString(currentPassword) || !sanitizeString(newPassword)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Current password and new password are required"
+                });
+            }
+
+            if (newPassword.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: "New password must be at least 6 characters long"
+                });
+            }
+
+            // Get user with password
+            const [users] = await db.query(
+                `SELECT id, password 
+                 FROM users 
+                 WHERE id = ?`,
+                [req.user.id]
+            );
+
+            if (users.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found"
+                });
+            }
+
+            // Verify current password
+            const bcrypt = require('bcryptjs');
+            const isValidPassword = await bcrypt.compare(currentPassword, users[0].password);
+            
+            if (!isValidPassword) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Current password is incorrect"
+                });
+            }
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update password
+            await db.query(
+                `UPDATE users 
+                 SET password = ?, 
+                     updated_at = NOW() 
+                 WHERE id = ?`,
+                [hashedPassword, req.user.id]
+            );
+
+            console.log(`🔐 User ${req.user.id} changed password successfully`);
+
+            return res.status(200).json({
+                success: true,
+                message: "Password changed successfully"
+            });
+
+        } catch (error) {
+            console.error("❌ CHANGE PASSWORD ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to change password"
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/auth/security-audit
+ * Get security audit log (admin only)
+ */
+router.get(
+    "/security-audit",
+    authMiddleware,
+    async (req, res) => {
+        try {
+            // Check if user is admin
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: "Admin access required"
+                });
+            }
+
+            const [logs] = await db.query(
+                `SELECT * FROM security_logs 
+                 ORDER BY timestamp DESC 
+                 LIMIT 100`
+            );
+
+            return res.status(200).json({
+                success: true,
+                data: logs,
+                count: logs.length,
+                timestamp: new Date().toISOString()
+            });
+
+        } catch (error) {
+            console.error("❌ SECURITY AUDIT ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to fetch security logs"
+            });
+        }
+    }
+);
+
+// ======================== ROUTE FALLBACK ========================
+
+/**
+ * 404 - Route not found
+ */
+router.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "Auth route not found",
+        path: req.path,
+        method: req.method
+    });
+});
+
+// ======================== EXPORTS ========================
+
+module.exports = router;
