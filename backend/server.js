@@ -20,7 +20,13 @@ app.use('/api/ai-feed', aiFeedRoutes);
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Import routes
+const approvalRoutes = require('./src/routes/approvalRoutes');
+const rollbackRoutes = require('./src/routes/rollbackRoutes');
 
+// Add routes
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/rollback', rollbackRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
