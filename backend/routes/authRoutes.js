@@ -21,7 +21,7 @@ const {
     forgotPasswordLimiter, 
     refreshTokenLimiter 
 } = require("../middleware/rateLimiter");
-const { verifyHumanChallenge } = require("../middleware/behavioralCaptcha");
+const { applyCaptchaCheck } = require("../middleware/captchaMiddleware");
 const { detectSyntheticIdentity } = require("../middleware/fraudDetectionMiddleware");
 
 // ======================== DATABASE ========================
@@ -50,30 +50,6 @@ function validateRequiredFields(req, res, fields) {
         });
     }
     return null;
-}
-
-/**
- * Apply behavioral CAPTCHA check
- */
-function applyCaptchaCheck(req, res, next) {
-    if (process.env.ENABLE_BEHAVIORAL_CAPTCHA === 'true') {
-        const captchaResult = verifyHumanChallenge(req);
-        
-        if (!captchaResult.passed) {
-            console.warn(`🛡️ CAPTCHA failed for ${req.ip} on ${req.path}: ${captchaResult.reason}`);
-            
-            const statusCode = captchaResult.reason === 'rate_limit_exceeded' ? 429 : 403;
-            return res.status(statusCode).json({
-                success: false,
-                message: captchaResult.reason === 'rate_limit_exceeded' 
-                    ? 'Too many requests. Please slow down.' 
-                    : 'Automated access detected. Please verify you are human.',
-                retryAfter: captchaResult.retryAfter || 60,
-                score: captchaResult.score
-            });
-        }
-    }
-    next();
 }
 
 // ======================== ROUTES ========================
