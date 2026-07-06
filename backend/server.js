@@ -7,6 +7,7 @@ const morgan = require("morgan");
 const timeout = require("connect-timeout");
 const fs = require("fs");
 const path = require("path");
+const { logServerStartup } = require('./src/utils/serverStartupLogger');
 
 const dotenv = require("dotenv");
 const rateLimit = require("express-rate-limit");
@@ -428,15 +429,18 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 // start server
+// start server
 server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-    console.log(`Frontend URL: ${FRONTEND_URL}`);
-    console.log(`Logs directory: ${logDir}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`🔒 MCP Security: Enabled`);
-    console.log(`🔒 Rate Limiting: Enabled`);
-    console.log(`🔒 Helmet: Enabled`);
+    logServerStartup({
+        port: PORT,
+        environment: process.env.NODE_ENV || "development",
+        frontendUrl: FRONTEND_URL,
+        logsDir: logDir,
+        healthUrl: `http://localhost:${PORT}/health`,
+        mcpSecurity: true,
+        rateLimiting: true,
+        helmet: true,
+    });
 });
 
 module.exports = app;
