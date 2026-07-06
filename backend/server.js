@@ -16,13 +16,23 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other route imports
+const performanceRoutes = require('./routes/performanceRoutes');
 
+// Add performance routes
+app.use('/api/performance', performanceRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
 
 // Add copywriter routes
 app.use('/api/copywriter', copywriterRoutes);
+// Add with other imports
+const { detectBot, addBotDetectionHeaders } = require('./middleware/botProtectionMiddleware');
+
+// Add after other middleware
+app.use(addBotDetectionHeaders);
+app.use(detectBot);
 
 const aiRoutes = require('./routes/aiRoutes');
 
