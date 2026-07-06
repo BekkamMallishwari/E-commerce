@@ -232,6 +232,79 @@ navLinks.forEach(link => {
         link.setAttribute('aria-current', 'page');
     }
 });
+
+const categoryMenuItem = document.querySelector(".category-menu-item");
+const categoryMenuToggle = document.getElementById("category-menu-toggle");
+const categoryMenuLinks = document.querySelectorAll(
+    ".category-menu-link, .mobile-category-link"
+);
+const currentUrl = new URL(window.location.href);
+const currentCategory = currentUrl.searchParams.get("category");
+
+const setCategoryMenuOpen = (isOpen) => {
+    if (!categoryMenuItem || !categoryMenuToggle) {
+        return;
+    }
+
+    categoryMenuItem.classList.toggle("is-open", isOpen);
+    categoryMenuToggle.setAttribute("aria-expanded", String(isOpen));
+};
+
+categoryMenuToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setCategoryMenuOpen(true);
+});
+
+categoryMenuItem?.addEventListener("mouseenter", () => {
+    if (window.matchMedia("(min-width: 1025px)").matches) {
+        setCategoryMenuOpen(true);
+    }
+});
+
+categoryMenuItem?.addEventListener("mouseleave", () => {
+    if (window.matchMedia("(min-width: 1025px)").matches) {
+        setCategoryMenuOpen(false);
+    }
+});
+
+categoryMenuItem?.addEventListener("focusout", (event) => {
+    if (!categoryMenuItem.contains(event.relatedTarget)) {
+        setCategoryMenuOpen(false);
+    }
+});
+
+document.addEventListener("click", (event) => {
+    if (categoryMenuItem && !categoryMenuItem.contains(event.target)) {
+        setCategoryMenuOpen(false);
+    }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (
+        event.key === "Escape" &&
+        categoryMenuItem?.classList.contains("is-open")
+    ) {
+        setCategoryMenuOpen(false);
+        categoryMenuToggle?.focus();
+    }
+});
+
+categoryMenuLinks.forEach((link) => {
+    const linkUrl = new URL(link.href);
+
+    if (
+        currentUrl.pathname.endsWith(linkUrl.pathname.split("/").pop()) &&
+        currentCategory &&
+        linkUrl.searchParams.get("category") === currentCategory
+    ) {
+        link.classList.add("active");
+        link.setAttribute("aria-current", "page");
+    }
+});
+
+if (currentCategory) {
+    categoryMenuToggle?.classList.add("active");
+}
     // notify components ready
     document.dispatchEvent(new CustomEvent("componentsLoaded"));
 }
