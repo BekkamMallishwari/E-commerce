@@ -1,7 +1,7 @@
 // backend/routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
-
+const cookieOptions = require("../config/cookieOptions");
 // ======================== CONTROLLERS ========================
 const {
     signup,
@@ -320,8 +320,8 @@ router.post(
             );
 
             // Clear cookies if using cookie-based auth
-            res.clearCookie('accessToken');
-            res.clearCookie('refreshToken');
+            res.clearCookie('accessToken',cookieOptions);
+            res.clearCookie('refreshToken',cookieOptions);
 
             console.log(`🔓 User ${req.user.id} logged out successfully`);
 
