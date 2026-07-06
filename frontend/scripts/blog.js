@@ -223,9 +223,9 @@ function openArticleModal(id) {
 
     const textDiv = document.createElement("div");
     textDiv.className = "modal-text";
-    
-    // Sanitize with DOMPurify to prevent XSS
-    textDiv.innerHTML = window.DOMPurify ? DOMPurify.sanitize(post.content) : post.content;
+    textDiv.innerHTML = window.DOMPurify 
+        ? DOMPurify.sanitize(post.content) 
+        : window.AppUtils ? AppUtils.escapeHTML(post.content) : post.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     blogModalBody.appendChild(textDiv);
 
     const shareDiv = document.createElement("div");

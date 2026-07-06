@@ -1,176 +1,67 @@
-const jwt =
-    require("jsonwebtoken");
+// backend/utils/signatureVerification.js
+const crypto = require('crypto');
 
-// environment validation
-if (
-    !process.env.JWT_SECRET
-) {
-
-    throw new Error(
-        "JWT_SECRET environment variable is not set"
-    );
-}
-
-// extract bearer token
-function extractToken(
-    authHeader
-) {
-
-    if (
-        !authHeader
-        ||
-        typeof authHeader !== "string"
-    ) {
-
-        return null;
+/**
+ * Verify ClaudeBot signature using HMAC-SHA256
+ */
+function verifyClaudeSignature(signature, body, secret) {
+    if (!signature || !body) {
+        console.warn('⚠️ Missing signature or body for verification');
+        return false;
     }
 
-    if (
-        !authHeader.startsWith(
-            "Bearer "
-        )
-    ) {
+    try {
+        const expectedSignature = crypto
+            .createHmac('sha256', secret)
+            .update(JSON.stringify(body))
+            .digest('hex');
 
-        return null;
+        return crypto.timingSafeEqual(
+            Buffer.from(signature, 'utf8'),
+            Buffer.from(expectedSignature, 'utf8')
+        );
+    } catch (error) {
+        console.error('❌ Signature verification error:', error);
+        return false;
     }
-
-    const token =
-        authHeader
-            .split(" ")[1]
-            ?.trim();
-
-    return token || null;
 }
 
-// unauthorized response
-function unauthorized(
-    res,
-    message =
-        "Unauthorized access"
-) {
-
-    return res.status(401)
-        .json({
-
-            success: false,
-
-            message
-        });
+/**
+ * Generate signature for outgoing requests (for testing)
+ */
+function generateClaudeSignature(body, secret) {
+    return crypto
+        .createHmac('sha256', secret)
+        .update(JSON.stringify(body))
+        .digest('hex');
 }
 
-// auth middleware
-const authMiddleware =
-    (
-        req,
-        res,
-        next
-    ) => {
-
-        try {
-
-            const authHeader = req.headers.authorization;
-
-            // extract token
-            let token = extractToken(authHeader);
-
-            // check cookies if header is missing
-            if (!token && req.cookies && req.cookies.accessToken) {
-                token = req.cookies.accessToken;
-            }
-
-            if (
-                !token
-            ) {
-
-                return unauthorized(
-                    res,
-                    "Authentication token required"
-                );
-            }
-
-            // verify token
-            const decoded =
-                jwt.verify(
-                    token,
-                    process.env.JWT_SECRET
-                );
-
-            // validate payload
-            if (
-                !decoded
-                ||
-                !decoded.id
-            ) {
-
-                return unauthorized(
-                    res,
-                    "Invalid token payload"
-                );
-            }
-
-            // attach user
-            req.user = {
-
-                id:
-                    Number(
-                        decoded.id
-                    ),
-
-                role:
-                    decoded.role
-                    || "customer"
+/**
+ * Check if request is from a trusted agent
+ */
+function isTrustedAgent(req) {
+    // First check: Cryptographic signature
+    const signature = req.headers['x-claude-signature'];
+    if (signature) {
+        const secret = process.env.CLAUDE_WEBHOOK_SECRET;
+        if (secret && verifyClaudeSignature(signature, req.body, secret)) {
+            return {
+                isTrusted: true,
+                verificationMethod: 'signature'
             };
-
-            next();
-
-        } catch (error) {
-
-            console.error(
-                "AUTH ERROR:",
-                error.message
-            );
-
-            // token expired
-            if (
-                error.name ===
-                "TokenExpiredError"
-            ) {
-
-                return unauthorized(
-                    res,
-                    "Session expired"
-                );
-            }
-
-            // invalid token
-            if (
-                error.name ===
-                "JsonWebTokenError"
-            ) {
-
-                return unauthorized(
-                    res,
-                    "Invalid authentication token"
-                );
-            }
-
-            // malformed token
-            if (
-                error.name ===
-                "NotBeforeError"
-            ) {
-
-                return unauthorized(
-                    res,
-                    "Token not active"
-                );
-            }
-
-            return unauthorized(
-                res
-            );
         }
-    };
+    }
 
-module.exports =
-    authMiddleware;
+    // If signature is missing or invalid, reject immediately. No insecure fallbacks.
+    return { 
+        isTrusted: false, 
+        reason: 'not_verified',
+        verificationMethod: 'none'
+    };
+}
+
+module.exports = {
+    verifyClaudeSignature,
+    generateClaudeSignature,
+    isTrustedAgent
+};

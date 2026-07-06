@@ -6,7 +6,7 @@ const {
     getSingleProduct,
     createProduct,
     updateProduct,
-    DeleteeProduct,
+    deleteProduct,
     getProductSuggestions
 } = require("../controllers/productController");
 
@@ -53,7 +53,7 @@ router.get("/:id", getSingleProduct);
 
 router.post("/", authMiddleware, authorizeRoles("admin"), validateCreateProduct, createProduct);
 router.put("/:id", authMiddleware, authorizeRoles("admin"), validateUpdateProduct, updateProduct);
-router.delete("/:id", authMiddleware, authorizeRoles("admin"), DeleteeProduct);
+router.delete("/:id", authMiddleware, authorizeRoles("admin"), deleteProduct);
 
 // Fallback
 router.use((req, res) => {

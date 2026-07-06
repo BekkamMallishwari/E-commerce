@@ -7,7 +7,7 @@ const recordInteraction = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { productId, type } = req.body;
 
-  if(!INTERACTION_TYPES.includes(type)) {
+  if (!Object.values(INTERACTION_TYPES).includes(type)) {
     return res.status(400).json({
       success: false,
       message: "Invalid interaction type"
