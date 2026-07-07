@@ -71,6 +71,9 @@ const copywriterRoutes = require('./routes/copywriterRoutes');
 app.use('/api/copywriter', copywriterRoutes);
 // Add with other imports
 
+const { detectAgenticFraud } = require('./middleware/agenticFraudMiddleware');
+
+
 const { detectBot, addBotDetectionHeaders } = require('./middleware/botProtectionMiddleware');
 
 
@@ -97,6 +100,9 @@ const fraudRoutes = require('./routes/fraudRoutes');
 app.use('/api/fraud', fraudRoutes);
 
 
+
+// Add after auth middleware
+app.use(detectAgenticFraud);
 const aiRoutes = require('./routes/aiRoutes');
 
 // Add AI routes
