@@ -7,7 +7,10 @@ const globalErrorHandler = require('./middleware/errorHandler');
 const compression = require("compression");
 const morgan = require("morgan");
 const timeout = require("connect-timeout");
-const { accessLogStream, errorLogStream } = require('./src/utils/logStreams');
+const fs = require("fs");
+const path = require("path");
+const { buildHealthResponse } = require('./src/utils/healthResponseBuilder');
+
 const dotenv = require("dotenv");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
@@ -267,17 +270,15 @@ app.use("/api/admin", adminLimiter);
 app.use("/api/mcp", mcpLimiter);
 
 // health check
+// health check
 app.get("/health", (req, res) => {
-    return res.status(200).json({
-        success: true,
-        status: "OK",
+    const healthData = buildHealthResponse({
         environment: process.env.NODE_ENV || "development",
-        timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        message: "Server is healthy",
+        memoryUsage: process.memoryUsage(),
     });
-});
+    return res.status(200).json(healthData);
+});;
 
 // root route
 app.get("/", (req, res) => {
