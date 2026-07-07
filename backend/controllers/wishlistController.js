@@ -13,23 +13,26 @@ const SHARE_TOKEN_LENGTH = 32;
 // ==================== CACHE ====================
 const cache = new Map();
 
-function getCacheKey(userId) {
-    return `wishlist:${userId}`;
+function getCacheKey(userId, page, limit) {
+    return `wishlist:${userId}:page:${page}:limit:${limit}`;
 }
 
-function getFromCache(userId) {
-    const key = getCacheKey(userId);
+function getFromCache(userId, page, limit) {
+    const key = getCacheKey(userId, page, limit);
     const cached = cache.get(key);
+
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return cached.data;
     }
+
     return null;
 }
 
-function setCache(userId, data) {
-    const key = getCacheKey(userId);
+function setCache(userId, page, limit, data) {
+    const key = getCacheKey(userId, page, limit);
+
     cache.set(key, {
-        data: data,
+        data,
         timestamp: Date.now()
     });
 }
@@ -75,7 +78,7 @@ const wishlistController = {
             const offset = (page - 1) * limit;
 
             // Check cache first
-            const cachedData = getFromCache(userId);
+            const cachedData = getFromCache(userId, page, limit);
             if (cachedData) {
                 logger.debug(`Cache hit for wishlist: ${userId}`);
                 return res.status(200).json({
@@ -124,7 +127,7 @@ const wishlistController = {
             };
 
             // Cache the data
-            setCache(userId, wishlistData);
+            setCache(userId, page, limit, wishlistData);
 
             return res.status(200).json({
                 success: true,
