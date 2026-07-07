@@ -86,7 +86,7 @@ const app = express();
 const http = require("http");
 const server = http.createServer(app);
 const { initSocket } = require("./utils/socketManager");
-
+const { accessLogger, errorLogger, devLogger } = require('./src/config/morganConfig');
 // constants
 const PORT = Number(process.env.PORT) || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5500";
@@ -94,23 +94,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5500";
 // create logs directory
 
 
-// custom morgan tokens
-morgan.token("user-id", (req) => req.user?.id || "anonymous");
-morgan.token("user-email", (req) => req.user?.email || "anonymous");
-
-// log all requests to access.log
-app.use(morgan("combined", { stream: accessLogStream }));
-
-// log errors to error.log
-app.use(morgan("combined", {
-    stream: errorLogStream,
-    skip: (req, res) => res.statusCode < 400
-}));
-
-// console logging in development
-if (process.env.NODE_ENV !== "production") {
-    app.use(morgan("dev"));
-}
 
 // trust proxy
 app.set("trust proxy", 1);
@@ -168,6 +151,15 @@ initSocket(server, allowedOrigins);
 
 // cors
 app.use(corsMiddleware);
+app.use(accessLogger);
+
+// log errors to error.log
+app.use(errorLogger);
+
+// console logging in development
+if (process.env.NODE_ENV !== "production") {
+    app.use(devLogger);
+}
 
 // body parsers
 app.use(
