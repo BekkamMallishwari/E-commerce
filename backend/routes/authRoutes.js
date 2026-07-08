@@ -75,16 +75,16 @@ router.post(
             });
         }
 
-        if (password.length < 6) {
+        const passwordCheck = validatePassword(password);
+        if (!passwordCheck.isValid) {
             return res.status(400).json({
                 success: false,
-                message: "Password must be at least 6 characters long"
+                message: passwordCheck.message
             });
         }
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
@@ -119,7 +119,7 @@ router.post(
         if (validationError) return validationError;
 
         // OTP should be 6 digits
-        if (!/^\d{6}$/.test(otp)) {
+        if (!isValidOTP(otp)) {
             return res.status(400).json({
                 success: false,
                 message: "OTP must be 6 digits"
@@ -146,8 +146,7 @@ router.post(
         if (validationError) return validationError;
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
@@ -174,8 +173,7 @@ router.post(
         if (validationError) return validationError;
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
@@ -210,7 +208,8 @@ router.post(
         }
 
         // OTP should be 6 digits
-        if (!/^\d{6}$/.test(otp)) {
+        // OTP should be 6 digits
+        if (!isValidOTP(otp)) {
             return res.status(400).json({
                 success: false,
                 message: "OTP must be 6 digits"
@@ -218,13 +217,13 @@ router.post(
         }
 
         // Password should be strong enough
-        if (newPassword.length < 6) {
+        const passwordCheck = validatePassword(newPassword);
+        if (!passwordCheck.isValid) {
             return res.status(400).json({
                 success: false,
-                message: "Password must be at least 6 characters long"
+                message: passwordCheck.message
             });
         }
-
         next();
     },
     resetPassword
@@ -295,7 +294,78 @@ router.post(
     "/change-password",
     authMiddleware,
     applyCaptchaCheck,
-   changePassword
+    async (req, res) => {
+        try {
+            const { currentPassword, newPassword } = req.body;
+
+            if (!sanitizeString(currentPassword) || !sanitizeString(newPassword)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Current password and new password are required"
+                });
+            }
+
+            const passwordCheck = validatePassword(newPassword);
+            if (!passwordCheck.isValid) {
+                return res.status(400).json({
+                    success: false,
+                    message: passwordCheck.message
+                });
+            }
+
+            // Get user with password
+            const [users] = await db.query(
+                `SELECT id, password 
+                 FROM users 
+                 WHERE id = ?`,
+                [req.user.id]
+            );
+
+            if (users.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found"
+                });
+            }
+
+            // Verify current password
+            const bcrypt = require('bcryptjs');
+            const isValidPassword = await bcrypt.compare(currentPassword, users[0].password);
+            
+            if (!isValidPassword) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Current password is incorrect"
+                });
+            }
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update password
+            await db.query(
+                `UPDATE users 
+                 SET password = ?, 
+                     updated_at = NOW() 
+                 WHERE id = ?`,
+                [hashedPassword, req.user.id]
+            );
+
+            console.log(`🔐 User ${req.user.id} changed password successfully`);
+
+            return res.status(200).json({
+                success: true,
+                message: "Password changed successfully"
+            });
+
+        } catch (error) {
+            console.error("❌ CHANGE PASSWORD ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to change password"
+            });
+        }
+    }
 );
 
 /**
