@@ -83,8 +83,7 @@ router.post(
         }
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
@@ -146,8 +145,7 @@ router.post(
         if (validationError) return validationError;
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
@@ -174,8 +172,7 @@ router.post(
         if (validationError) return validationError;
 
         // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format"
