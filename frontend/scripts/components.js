@@ -251,6 +251,274 @@ const mobileCategoryAccordions = Array.from(
 const currentUrl = new URL(window.location.href);
 const currentCategory = currentUrl.searchParams.get("category");
 const currentSubcategory = currentUrl.searchParams.get("subcategory");
+const grocerySubcategoryLinks = Array.from(
+    document.querySelectorAll(".grocery-subcategory-link")
+);
+const groceryProductPreview = document.getElementById(
+    "grocery-product-preview"
+);
+
+const grocerySubcategoryKeywords = {
+    "Fruits & Vegetables": [
+        "fruit",
+        "fruits",
+        "vegetable",
+        "vegetables",
+        "apple",
+        "banana",
+        "orange",
+        "tomato",
+        "potato",
+        "onion",
+        "leafy",
+        "greens"
+    ],
+    Dairy: [
+        "dairy",
+        "milk",
+        "curd",
+        "yogurt",
+        "cheese",
+        "butter",
+        "paneer",
+        "cream"
+    ],
+    Snacks: [
+        "snack",
+        "snacks",
+        "chips",
+        "biscuit",
+        "cookies",
+        "namkeen",
+        "cracker",
+        "popcorn"
+    ],
+    Beverages: [
+        "beverage",
+        "beverages",
+        "juice",
+        "tea",
+        "coffee",
+        "drink",
+        "water",
+        "soda"
+    ],
+    "Cooking Essentials": [
+        "cooking",
+        "oil",
+        "rice",
+        "flour",
+        "atta",
+        "dal",
+        "spice",
+        "masala",
+        "salt",
+        "sugar"
+    ],
+    "Household Supplies": [
+        "household",
+        "cleaner",
+        "detergent",
+        "soap",
+        "dishwash",
+        "tissue",
+        "toilet",
+        "floor",
+        "laundry"
+    ]
+};
+
+const normalizeMenuValue = (value) =>
+    String(value || "")
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+
+const stringifyProductValue = (value) => {
+    if (!value) {
+        return "";
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(stringifyProductValue).join(" ");
+    }
+
+    if (typeof value === "object") {
+        return Object.values(value).map(stringifyProductValue).join(" ");
+    }
+
+    return String(value);
+};
+
+const getProductSearchText = (product) =>
+    [
+        product?.name,
+        product?.description,
+        product?.category,
+        product?.subcategory,
+        product?.sub_category,
+        product?.brand,
+        stringifyProductValue(product?.tags),
+        stringifyProductValue(product?.specifications)
+    ].join(" ");
+
+const getProductSubcategory = (product) =>
+    product?.subcategory ||
+    product?.sub_category ||
+    product?.subCategory ||
+    "";
+
+const matchesGrocerySubcategory = (product, subcategory) => {
+    const normalizedSubcategory = normalizeMenuValue(subcategory);
+    const category = normalizeMenuValue(product?.category);
+    const productSubcategory = normalizeMenuValue(
+        getProductSubcategory(product)
+    );
+    const searchText = normalizeMenuValue(
+        getProductSearchText(product)
+    );
+    const keywords = grocerySubcategoryKeywords[subcategory] || [];
+
+    if (productSubcategory) {
+        return productSubcategory === normalizedSubcategory;
+    }
+
+    if (category === normalizedSubcategory) {
+        return true;
+    }
+
+    if (
+        category !== "grocery" &&
+        !searchText.includes("grocery")
+    ) {
+        return false;
+    }
+
+    return keywords.some((keyword) =>
+        searchText.includes(normalizeMenuValue(keyword))
+    );
+};
+
+const getProductLink = (product, fallbackSubcategory) => {
+    if (product?.id !== undefined && product?.id !== null) {
+        return `product.html?id=${encodeURIComponent(product.id)}`;
+    }
+
+    return `shop.html?category=Grocery&subcategory=${encodeURIComponent(
+        fallbackSubcategory
+    )}`;
+};
+
+const renderGroceryProducts = (products, subcategory) => {
+    if (!groceryProductPreview) {
+        return;
+    }
+
+    const safeProducts = Array.isArray(products)
+        ? products
+        : [];
+
+    if (!safeProducts.length) {
+        groceryProductPreview.innerHTML =
+            `<p class="grocery-menu-empty">No products available.</p>`;
+        return;
+    }
+
+    groceryProductPreview.innerHTML = safeProducts
+        .slice(0, 4)
+        .map((product) => {
+            const name = product?.name || "Product";
+            const escapedName = AppUtils.escapeHTML(name);
+            const image = AppUtils.defaultImage(product?.image);
+            const price = AppUtils.formatPrice(product?.price || 0);
+            const href = getProductLink(product, subcategory);
+
+            return `
+                <a class="grocery-menu-product" href="${href}">
+                    <img
+                        src="${AppUtils.escapeHTML(image)}"
+                        alt="${escapedName}"
+                        loading="lazy"
+                    />
+                    <span class="grocery-menu-product-info">
+                        <span class="grocery-menu-product-name">${escapedName}</span>
+                        <span class="grocery-menu-product-price">${price}</span>
+                    </span>
+                </a>
+            `;
+        })
+        .join("");
+};
+
+const setActiveGrocerySubcategory = (activeLink) => {
+    grocerySubcategoryLinks.forEach((link) => {
+        const isActive = link === activeLink;
+
+        link.classList.toggle("is-active", isActive);
+    });
+};
+
+const fetchGroceryProducts = async () => {
+    if (!groceryProductPreview || !window.AppUtils) {
+        return [];
+    }
+
+    try {
+        const data = await AppUtils.apiRequest(
+            "/products?page=1&limit=200"
+        );
+
+        return data.success && Array.isArray(data.products)
+            ? data.products
+            : [];
+    } catch (error) {
+        console.error(
+            "GROCERY MEGA MENU FETCH ERROR:",
+            error
+        );
+        return [];
+    }
+};
+
+const initializeGroceryMegaMenu = async () => {
+    if (!grocerySubcategoryLinks.length || !groceryProductPreview) {
+        return;
+    }
+
+    let groceryProducts = [];
+
+    const showSubcategoryProducts = (link) => {
+        const subcategory =
+            link.dataset.grocerySubcategory ||
+            link.textContent.trim();
+        const products = groceryProducts.filter((product) =>
+            matchesGrocerySubcategory(product, subcategory)
+        );
+
+        setActiveGrocerySubcategory(link);
+        renderGroceryProducts(products, subcategory);
+    };
+
+    grocerySubcategoryLinks.forEach((link) => {
+        link.addEventListener("mouseenter", () => {
+            showSubcategoryProducts(link);
+        });
+
+        link.addEventListener("focus", () => {
+            showSubcategoryProducts(link);
+        });
+    });
+
+    groceryProducts = await fetchGroceryProducts();
+
+    const defaultLink =
+        grocerySubcategoryLinks.find((link) =>
+            link.dataset.grocerySubcategory === currentSubcategory
+        ) || grocerySubcategoryLinks[0];
+
+    showSubcategoryProducts(defaultLink);
+};
 
 const setCategoryMenuOpen = (isOpen) => {
     if (!categoryMenuItem || !categoryMenuToggle) {
@@ -421,6 +689,7 @@ mobileCategoryAccordions.forEach((accordion) => {
         toggle.setAttribute("aria-expanded", String(isOpen));
     });
 });
+    await initializeGroceryMegaMenu();
     // notify components ready
     document.dispatchEvent(new CustomEvent("componentsLoaded"));
 }
