@@ -34,8 +34,20 @@ const fallbackProducts = [
 const SEARCH_HISTORY_KEY =
     "advancedProductSearchHistory";
 
+const SHOP_IMAGE_FALLBACK =
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Product image unavailable">
+            <rect width="600" height="600" rx="36" fill="#f3f4f6"/>
+            <rect x="110" y="110" width="380" height="380" rx="28" fill="#e5e7eb"/>
+            <path d="M190 405l70-82 54 62 40-48 94 106H190z" fill="#cbd5e1"/>
+            <circle cx="255" cy="240" r="34" fill="#cbd5e1"/>
+            <text x="300" y="515" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#6b7280">Image unavailable</text>
+        </svg>`
+    );
+
 const PRODUCTS_PER_PAGE =
-    window.CONFIG?.PRODUCTS_PER_PAGE || 8;
+    globalThis.CONFIG?.PRODUCTS_PER_PAGE || 8;
 
 let filters = {
     search: "",
@@ -62,7 +74,7 @@ let hasAppliedUrlFilters = false;
 const elements = {};
 
 const getFilterUtils = () =>
-    window.ShopFilterUtils;
+    globalThis.ShopFilterUtils;
 
 const getStoredSearchHistory = () =>
     AppUtils.safeArray(
@@ -93,6 +105,86 @@ const saveSearchHistory = (term) => {
         searchHistory
     );
 };
+
+function getProductImageSrc(image) {
+    const resolvedImage = AppUtils.defaultImage(image);
+
+    return resolvedImage && resolvedImage !== "assets/images/default-product.png"
+        ? resolvedImage
+        : SHOP_IMAGE_FALLBACK;
+}
+
+function getWishlistIconClass(productId) {
+    const isWishlisted = AppUtils.getWishlist().some(
+        (item) => String(item.id) === String(productId)
+    );
+
+    return isWishlisted ? "fas" : "far";
+}
+
+function updateWishlistButtons(productId, isWishlisted) {
+    const buttons = document.querySelectorAll(
+        `.wishlist-btn[data-id="${productId}"], .wishlist-btn-shop[data-id="${productId}"]`
+    );
+
+    buttons.forEach((btn) => {
+        const icon = btn.querySelector("i");
+
+        if (!icon) {
+            return;
+        }
+
+        icon.classList.toggle("fas", isWishlisted);
+        icon.classList.toggle("far", !isWishlisted);
+    });
+}
+
+function resetCategoryCheckboxes() {
+    const categoryCheckboxes = document.querySelectorAll('input[name="category-filter"]');
+
+    categoryCheckboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+    });
+}
+
+async function syncWishlistFallback(product) {
+    let wishlist = AppUtils.getWishlist();
+    const exists = wishlist.some((item) => String(item.id) === String(product.id));
+    const token = AppUtils.getToken();
+
+    if (exists) {
+        wishlist = wishlist.filter((item) => String(item.id) !== String(product.id));
+        AppUtils.notify("Removed from wishlist", "info");
+
+        if (token) {
+            try {
+                await AppUtils.apiRequest("/wishlist/remove", {
+                    method: "POST",
+                    body: JSON.stringify({ productId: product.id })
+                });
+            } catch (error) {
+                console.warn("Failed to sync wishlist removal:", error);
+            }
+        }
+    } else {
+        wishlist.push(product);
+        AppUtils.notify("Added to wishlist ❤️", "success");
+
+        if (token) {
+            try {
+                await AppUtils.apiRequest("/wishlist/add", {
+                    method: "POST",
+                    body: JSON.stringify({ productId: product.id })
+                });
+            } catch (error) {
+                console.warn("Failed to sync wishlist addition:", error);
+            }
+        }
+    }
+
+    AppUtils.saveWishlist(wishlist);
+    updateWishlistButtons(product.id, !exists);
+}
 
 // FETCH PRODUCTS
 async function fetchProducts() {
@@ -189,9 +281,13 @@ function getRatingLabel(product) {
     const count = getReviewCount(product);
     const rating = Number(product.rating || 0);
 
-    return count
-        ? `${rating.toFixed(1)} (${count} review${count === 1 ? "" : "s"})`
-        : "No reviews yet";
+    if (!count) {
+        return "No reviews yet";
+    }
+
+    const reviewLabel = count === 1 ? "review" : "reviews";
+
+    return `${rating.toFixed(1)} (${count} ${reviewLabel})`;
 }
 
 // PRODUCT CARD
@@ -219,6 +315,7 @@ function createProductCard(
         product.brand ||
         product.category ||
         "Fashion";
+    const wishlistIconClass = getWishlistIconClass(product.id);
 
     return `
         <div
@@ -226,7 +323,7 @@ function createProductCard(
             data-product-id="${escapedId}"
         >
             <img
-                src="${AppUtils.defaultImage(product.image)}"
+                src="${AppUtils.escapeHTML(getProductImageSrc(product.image))}"
                 alt="${escapedName}"
                 loading="lazy"
             >
@@ -244,7 +341,7 @@ function createProductCard(
                     )}
                     <span class="rating-count">
                         ${AppUtils.escapeHTML(getRatingLabel(product))}
-                    </span>
+                                <i class="${isWishlisted ? 'fas' : 'far'} fa-heart"></i>
                 </div>
                 <h4>
                     ${AppUtils.formatPrice(
@@ -273,7 +370,7 @@ function createProductCard(
                     : `
                         <div class="shop-card-actions">
                             <button class="wishlist-btn-shop cart" data-id="${escapedId}" aria-label="Add ${escapedName} to wishlist">
-                                <i class="${ AppUtils.getWishlist().some(item => String(item.id) === String(product.id)) ? 'fas' : 'far' } fa-heart"></i>
+                                <i class="${wishlistIconClass} fa-heart"></i>
                             </button>
                             <button class="add-to-cart-icon cart" aria-label="Add ${escapedName} to cart">
                                 <i class="fal fa-shopping-cart"></i>
@@ -308,6 +405,17 @@ function renderProducts(
         wrapper.innerHTML = createProductCard(product);
         const card = wrapper.firstElementChild;
         if (card) {
+            const cardImage = card.querySelector("img");
+            if (cardImage) {
+                cardImage.addEventListener("error", () => {
+                    if (cardImage.dataset.fallbackApplied === "true") {
+                        return;
+                    }
+
+                    cardImage.dataset.fallbackApplied = "true";
+                    cardImage.src = SHOP_IMAGE_FALLBACK;
+                });
+            }
             setupProductCard(card, product);
             fragment.appendChild(card);
         }
@@ -332,7 +440,7 @@ function setupProductCard(
             ) {
                 return;
             }
-            window.location.href =
+            globalThis.location.href =
                 `product.html?id=${product.id}`;
         }
     );
@@ -357,7 +465,7 @@ function setupProductCard(
                     product.name ||
                     "Product",
                 price:
-                    parseFloat(
+                    Number.parseFloat(
                         product.price
                     ) || 0,
                 img:
@@ -423,54 +531,12 @@ function setupProductCard(
         wishlistBtn.addEventListener("click", async (event) => {
             event.preventDefault();
             event.stopPropagation();
-            
-            // Re-use logic from product-actions-home.js if it's available, otherwise fallback
-            if (typeof window.toggleWishlist === "function") {
-                await window.toggleWishlist(product);
-            } else {
-                let wishlist = AppUtils.getWishlist();
-                const exists = wishlist.some(item => String(item.id) === String(product.id));
-                const token = AppUtils.getToken();
 
-                if (exists) {
-                    wishlist = wishlist.filter(item => String(item.id) !== String(product.id));
-                    AppUtils.notify("Removed from wishlist", "info");
-                    if (token) {
-                        try {
-                            await AppUtils.apiRequest("/wishlist/remove", {
-                                method: "POST",
-                                body: JSON.stringify({ productId: product.id })
-                            });
-                        } catch (e) {}
-                    }
-                } else {
-                    wishlist.push(product);
-                    AppUtils.notify("Added to wishlist ❤️", "success");
-                    if (token) {
-                        try {
-                            await AppUtils.apiRequest("/wishlist/add", {
-                                method: "POST",
-                                body: JSON.stringify({ productId: product.id })
-                            });
-                        } catch (e) {}
-                    }
-                }
-                AppUtils.saveWishlist(wishlist);
-                
-                // Update DOM icons dynamically
-                const buttons = document.querySelectorAll(`.wishlist-btn[data-id="${product.id}"], .wishlist-btn-shop[data-id="${product.id}"]`);
-                buttons.forEach(btn => {
-                    const icon = btn.querySelector("i");
-                    if (icon) {
-                        if (exists) {
-                            icon.classList.remove("fas");
-                            icon.classList.add("far");
-                        } else {
-                            icon.classList.remove("far");
-                            icon.classList.add("fas");
-                        }
-                    }
-                });
+            // Re-use logic from product-actions-home.js if it's available, otherwise fallback
+            if (typeof globalThis.toggleWishlist === "function") {
+                await globalThis.toggleWishlist(product);
+            } else {
+                await syncWishlistFallback(product);
             }
         });
     }
@@ -499,7 +565,7 @@ function initializeFilterControls() {
 
 function getUrlCategoryFilters() {
     const params =
-        new URLSearchParams(window.location.search);
+        new URLSearchParams(globalThis.location.search);
 
     return {
         category: params.get("category") || "",
@@ -1233,8 +1299,7 @@ document.addEventListener(
                     `input[name="category-filter"][value="${category}"]`
                 );
                 if (checkbox) {
-                    document.querySelectorAll('input[name="category-filter"]')
-                        .forEach(cb => cb.checked = false);
+                    resetCategoryCheckboxes();
                     checkbox.checked = true;
                     applyFilters({ resetPage: true });
                     document.getElementById("product-container")
