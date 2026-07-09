@@ -7,12 +7,20 @@ const globalErrorHandler = require('./middleware/errorHandler');
 const compression = require("compression");
 const morgan = require("morgan");
 const timeout = require("connect-timeout");
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { apiLimiter, adminLimiter, mcpLimiter } = require('./config/rateLimiters');
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/corsMiddleware");
+const { buildHealthResponse } = require("./utils/healthResponseBuilder");
+const { logServerStartup } = require("./utils/serverStartupLogger");
+const { errorLogStream } = require("./utils/logstreams");
+
+// init app early so route and middleware registration can safely use it
+const app = express();
+
+const logDir = path.join(process.cwd(), "logs");
 // Add with other route imports
 const aiFeedRoutes = require('./routes/aiFeedRoutes');
 // Import agent routes
@@ -111,9 +119,7 @@ validateEnv();
 // database
 require("./config/db");
 
-// init app
-const app = express();
-const http = require("http");
+const http = require("node:http");
 const server = http.createServer(app);
 const { initSocket } = require("./utils/socketManager");
 const { accessLogger, errorLogger, devLogger } = require('./config/morganConfig');
