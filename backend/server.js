@@ -16,7 +16,20 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const jobRoutes = require('./routes/jobRoutes');
+const { jobQueue, jobHandlers, JOB_TYPES } = require('./services/jobQueueService');
 
+// Register job handlers
+for (const [type, handler] of Object.entries(jobHandlers)) {
+    jobQueue.registerHandler(type, handler);
+}
+
+// Initialize job queue
+await jobQueue.initialize();
+
+// Add job routes
+app.use('/api/jobs', jobRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
