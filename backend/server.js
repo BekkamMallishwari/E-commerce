@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const policyRoutes = require('./routes/policyRoutes');
+const { policyEngine } = require('./services/policyEngineService');
 
+// Initialize policy engine
+await policyEngine.initialize();
+
+// Add policy routes
+app.use('/api/policies', policyRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
