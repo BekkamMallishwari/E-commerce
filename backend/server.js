@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other route imports
+const cqrsRoutes = require('./routes/cqrsRoutes');
+const { readModelSynchronizer } = require('./services/cqrsService');
 
+// Start read model synchronization
+readModelSynchronizer.start();
+
+// Add CQRS routes
+app.use('/api/cqrs', cqrsRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
