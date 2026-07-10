@@ -55,12 +55,24 @@ app.use('/api/ai-feed', aiFeedRoutes);
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const outboxRoutes = require('./routes/outboxRoutes');
+const { outboxService } = require('./services/outboxService');
+
+
+// Initialize outbox service
+await outboxService.initialize();
+
+// Add outbox routes
+app.use('/api/outbox', outboxRoutes);
+
 // Add with other route imports
 const cqrsRoutes = require('./routes/cqrsRoutes');
 const { readModelSynchronizer } = require('./services/cqrsService');
 
 // Start read model synchronization
 readModelSynchronizer.start();
+
 
 // Add CQRS routes
 app.use('/api/cqrs', cqrsRoutes);
