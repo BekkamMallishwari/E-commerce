@@ -55,6 +55,18 @@ app.use('/api/ai-feed', aiFeedRoutes);
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+
+// Add with other imports
+const correlationRoutes = require('./routes/correlationRoutes');
+const { correlationIdMiddleware, logCompletionMiddleware } = require('./middleware/correlationIdMiddleware');
+
+// Add correlation ID middleware BEFORE any other middleware
+app.use(correlationIdMiddleware);
+app.use(logCompletionMiddleware);
+
+// Add correlation routes
+app.use('/api/correlation', correlationRoutes);
+
 // Add with other route imports
 
 const pluginRoutes = require('./routes/pluginRoutes');
