@@ -79,6 +79,21 @@ readModelSynchronizer.start();
 app.use('/api/cqrs', cqrsRoutes);
 // Add with other imports
 
+
+const jobRoutes = require('./routes/jobRoutes');
+const { jobQueue, jobHandlers, JOB_TYPES } = require('./services/jobQueueService');
+
+// Register job handlers
+for (const [type, handler] of Object.entries(jobHandlers)) {
+    jobQueue.registerHandler(type, handler);
+}
+
+// Initialize job queue
+await jobQueue.initialize();
+
+// Add job routes
+app.use('/api/jobs', jobRoutes);
+
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
 
@@ -87,6 +102,7 @@ await featureFlagService.initialize();
 
 // Add flag routes
 app.use('/api/flags', flagRoutes);
+
 
 const correlationRoutes = require('./routes/correlationRoutes');
 const { correlationIdMiddleware, logCompletionMiddleware } = require('./middleware/correlationIdMiddleware');
