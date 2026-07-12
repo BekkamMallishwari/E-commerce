@@ -6,8 +6,41 @@ const authMiddleware = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/rbacMiddleware");
 const wishlistController = require("../controllers/wishlistController");
 const { safeNumber, safeInteger } = require("../utils/helpers");
+const { MAX_WISHLIST_SYNC_LIMIT } = require("../config/constants");
 
-// ==================== VALIDATION MIDDLEWARE ====================
+// ==================== SYNC VALIDATION MIDDLEWARE ====================
+const validateSyncPayload = (req, res, next) => {
+  const { productIds } = req.body;
+
+  // 1. Check if array exists and is not empty
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product IDs array is required and cannot be empty for synchronization.",
+    });
+  }
+
+  // 🔥 UPDATED: Use the centralized constant instead of hardcoding 200
+  if (productIds.length > MAX_WISHLIST_SYNC_LIMIT) {
+    return res.status(400).json({
+      success: false,
+      message: `Maximum ${MAX_WISHLIST_SYNC_LIMIT} products allowed in a single synchronization request.`,
+    });
+  }
+
+  // 2. Validate individual IDs
+  for (const id of productIds) {
+    if (!safeNumber(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid product ID: ${id}`,
+      });
+    }
+  }
+
+  next();
+};
+
 const validateProductId = (req, res, next) => {
   const productId = safeNumber(req.params.productId || req.body.productId);
   if (!productId || productId < 1) {
@@ -95,7 +128,7 @@ router.post(
 router.post("/share", authMiddleware, wishlistController.generateShareLink);
 
 // Sync wishlist (replace entire wishlist)
-router.post("/sync", authMiddleware, wishlistController.syncWishlist);
+router.post("/sync", authMiddleware,validateSyncPayload , wishlistController.syncWishlist);
 
 // Remove from wishlist (using body)
 router.post(
