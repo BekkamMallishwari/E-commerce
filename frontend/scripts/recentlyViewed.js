@@ -22,6 +22,7 @@ const recentlyViewed = AppUtils.getJSON(RECENTLY_VIEWED_CONFIG.cacheKey) || [];
 // ============================================
 
 const elements = {
+
     recentContainer: AppUtils.$("#recently-viewed-container") || AppUtils.$("#recently-viewed-count"),
     recentCount: AppUtils.$("#recently-viewed-count"),
     recentGrid: AppUtils.$("#recently-viewed-grid"),
@@ -203,6 +204,25 @@ const renderProducts = (container, products, limit = RECENTLY_VIEWED_CONFIG.disp
                             ${product.category ? `<span class="product-category">${escapeHTML(product.category)}</span>` : ''}
                         </div>
                     </div>
+
+    recentContainer:
+       AppUtils.$("#recently-viewed-count"),
+
+    recentCount:
+        AppUtils.$("#recently-viewed-count")
+};
+
+// EMPTY STATE HELPER
+const renderEmptyState = (container, message) => {
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-state-card recent-empty">
+                <div class="empty-icon">👁</div>
+                <h3>No Recently Viewed Products</h3>
+                <p>${message}</p>
+                <a href="shop.html" class="empty-state-btn">
+                    Start Shopping
+
                 </a>
                 <div class="product-actions">
                     <button onclick="addToCart('${productId}')" class="add-to-cart-btn">
