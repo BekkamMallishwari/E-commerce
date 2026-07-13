@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const versionRoutes = require('./routes/versionRoutes');
+const { semanticVersionService } = require('./services/semanticVersionService');
 
+// Initialize semantic version service
+await semanticVersionService.initialize();
+
+// Add version routes
+app.use('/api/versions', versionRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
