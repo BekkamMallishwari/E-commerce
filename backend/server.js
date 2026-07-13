@@ -54,6 +54,16 @@ const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
+
+const healthRoutes = require('./routes/healthRoutes');
+const { healthScoreService } = require('./services/healthScoreService');
+
+// Initialize health score service
+await healthScoreService.initialize();
+
+// Add health routes (BEFORE any other routes)
+app.use('/health', healthRoutes);
+
 const metricsRoutes = require('./routes/metricsRoutes');
 const { metricsAggregationService } = require('./services/metricsAggregationService');
 
@@ -62,6 +72,7 @@ await metricsAggregationService.initialize();
 
 // Add metrics routes
 app.use('/api/metrics', metricsRoutes);
+
 
 const notificationBrokerRoutes = require('./routes/notificationBrokerRoutes');
 const { 
@@ -78,6 +89,7 @@ notificationBroker.registerChannel('webhook', webhookChannel.handler);
 
 // Initialize notification broker
 await notificationBroker.initialize();
+
 
 // Add notification routes
 app.use('/api/notifications', notificationBrokerRoutes);
