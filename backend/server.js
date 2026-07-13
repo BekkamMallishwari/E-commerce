@@ -16,7 +16,11 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other route imports
+const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
 
+// Add recently viewed routes
+app.use('/api/recently-viewed', recentlyViewedRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
