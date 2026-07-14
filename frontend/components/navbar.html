@@ -222,13 +222,36 @@
                 <h3 id="mega-title-stationery">Stationery</h3>
                 <a href="shop.html?category=Stationery">Shop all Stationery</a>
               </div>
-              <div class="mega-menu-grid">
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=Notebooks">Notebooks</a>
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=Pens">Pens</a>
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=Pencils">Pencils</a>
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=School%20Bags">School Bags</a>
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=Office%20Supplies">Office Supplies</a>
-                <a class="category-menu-link" href="shop.html?category=Stationery&amp;subcategory=Art%20Supplies">Art Supplies</a>
+              <div class="mega-menu-grid grocery-mega-menu-grid stationery-mega-menu-grid">
+                <div class="grocery-subcategory-list stationery-subcategory-list" aria-label="Stationery subcategories">
+                  <a class="stationery-category-card stationery-subcategory-link is-active" href="shop.html?category=Stationery&amp;subcategory=Notebooks%20%26%20Planners" data-stationery-subcategory="Notebooks &amp; Planners" aria-controls="stationery-product-preview">
+                    <div class="stationery-card-img-wrapper">
+                      <img src="assets/images/notebooks_planners_preview.png" alt="Notebooks &amp; Planners" loading="lazy" />
+                    </div>
+                    <span>Notebooks &amp; Planners</span>
+                  </a>
+                  <a class="stationery-category-card stationery-subcategory-link" href="shop.html?category=Stationery&amp;subcategory=Pens%20%26%20Writing" data-stationery-subcategory="Pens &amp; Writing" aria-controls="stationery-product-preview">
+                    <div class="stationery-card-img-wrapper">
+                      <img src="assets/images/pens_writing_preview.png" alt="Pens &amp; Writing" loading="lazy" />
+                    </div>
+                    <span>Pens &amp; Writing</span>
+                  </a>
+                  <a class="stationery-category-card stationery-subcategory-link" href="shop.html?category=Stationery&amp;subcategory=Office%20Supplies" data-stationery-subcategory="Office Supplies" aria-controls="stationery-product-preview">
+                    <div class="stationery-card-img-wrapper">
+                      <img src="assets/images/office_supplies_preview.png" alt="Office Supplies" loading="lazy" />
+                    </div>
+                    <span>Office Supplies</span>
+                  </a>
+                  <a class="stationery-category-card stationery-subcategory-link" href="shop.html?category=Stationery&amp;subcategory=Art%20Supplies" data-stationery-subcategory="Art Supplies" aria-controls="stationery-product-preview">
+                    <div class="stationery-card-img-wrapper">
+                      <img src="assets/images/art_supplies_preview.png" alt="Art Supplies" loading="lazy" />
+                    </div>
+                    <span>Art Supplies</span>
+                  </a>
+                </div>
+                <div id="stationery-product-preview" class="grocery-product-preview stationery-product-preview" aria-live="polite">
+                  <p class="grocery-menu-empty stationery-menu-empty">Loading products...</p>
+                </div>
               </div>
             </section>
 

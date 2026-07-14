@@ -263,6 +263,12 @@ const toySubcategoryLinks = Array.from(
 const toyProductPreview = document.getElementById(
     "toy-product-preview"
 );
+const stationerySubcategoryLinks = Array.from(
+    document.querySelectorAll(".stationery-subcategory-link")
+);
+const stationeryProductPreview = document.getElementById(
+    "stationery-product-preview"
+);
 
 const grocerySubcategoryKeywords = {
     "Fruits & Vegetables": [
@@ -386,6 +392,63 @@ const toySubcategoryKeywords = {
     ]
 };
 
+const stationerySubcategoryKeywords = {
+    "Notebooks & Planners": [
+        "notebook",
+        "notebooks",
+        "planner",
+        "planners",
+        "diary",
+        "journal",
+        "journals",
+        "pad",
+        "pads"
+    ],
+    "Pens & Writing": [
+        "pen",
+        "pens",
+        "pencil",
+        "pencils",
+        "writing",
+        "marker",
+        "markers",
+        "ink",
+        "eraser",
+        "erasers",
+        "sharpener",
+        "sharpeners"
+    ],
+    "Office Supplies": [
+        "office",
+        "desk",
+        "supplies",
+        "clip",
+        "clips",
+        "stapler",
+        "staplers",
+        "tape",
+        "tapes",
+        "folder",
+        "folders",
+        "paperclip",
+        "scissors"
+    ],
+    "Art Supplies": [
+        "art",
+        "paint",
+        "paints",
+        "watercolor",
+        "canvas",
+        "brush",
+        "brushes",
+        "sketchbook",
+        "sketchbooks",
+        "crayon",
+        "crayons",
+        "pastel"
+    ]
+};
+
 const normalizeMenuValue = (value) =>
     String(value || "")
         .toLowerCase()
@@ -485,6 +548,37 @@ const matchesToySubcategory = (product, subcategory) => {
     if (
         category !== "toys" &&
         !searchText.includes("toy")
+    ) {
+        return false;
+    }
+
+    return keywords.some((keyword) =>
+        searchText.includes(normalizeMenuValue(keyword))
+    );
+};
+
+const matchesStationerySubcategory = (product, subcategory) => {
+    const normalizedSubcategory = normalizeMenuValue(subcategory);
+    const category = normalizeMenuValue(product?.category);
+    const productSubcategory = normalizeMenuValue(
+        getProductSubcategory(product)
+    );
+    const searchText = normalizeMenuValue(
+        getProductSearchText(product)
+    );
+    const keywords = stationerySubcategoryKeywords[subcategory] || [];
+
+    if (productSubcategory) {
+        return productSubcategory === normalizedSubcategory;
+    }
+
+    if (category === normalizedSubcategory) {
+        return true;
+    }
+
+    if (
+        category !== "stationery" &&
+        !searchText.includes("stationery")
     ) {
         return false;
     }
@@ -633,6 +727,57 @@ const setActiveToySubcategory = (activeLink) => {
     });
 };
 
+const renderStationeryProducts = (products, subcategory) => {
+    if (!stationeryProductPreview) {
+        return;
+    }
+
+    const safeProducts = Array.isArray(products)
+        ? products
+        : [];
+
+    if (!safeProducts.length) {
+        stationeryProductPreview.innerHTML =
+            `<p class="grocery-menu-empty stationery-menu-empty">No stationery products available for ${escapeMenuHTML(subcategory)} yet.</p>`;
+        return;
+    }
+
+    stationeryProductPreview.innerHTML = safeProducts
+        .slice(0, 4)
+        .map((product) => {
+            const name = product?.name || "Stationery";
+            const escapedName = AppUtils.escapeHTML(name);
+            const image = AppUtils.defaultImage(product?.image);
+            const price = AppUtils.formatPrice(product?.price || 0);
+            const href = getProductLink(product, "Stationery", subcategory);
+            const rating = renderMenuRating(product?.rating);
+
+            return `
+                <a class="grocery-menu-product toy-menu-product stationery-menu-product" href="${href}">
+                    <img
+                        src="${AppUtils.escapeHTML(image)}"
+                        alt="${escapedName}"
+                        loading="lazy"
+                    />
+                    <span class="grocery-menu-product-info toy-menu-product-info stationery-menu-product-info">
+                        <span class="grocery-menu-product-name toy-menu-product-name stationery-menu-product-name">${escapedName}</span>
+                        <span class="grocery-menu-product-price toy-menu-product-price stationery-menu-product-price">${price}</span>
+                        ${rating}
+                    </span>
+                </a>
+            `;
+        })
+        .join("");
+};
+
+const setActiveStationerySubcategory = (activeLink) => {
+    stationerySubcategoryLinks.forEach((link) => {
+        const isActive = link === activeLink;
+
+        link.classList.toggle("is-active", isActive);
+    });
+};
+
 let megaMenuProductsCache;
 
 const fetchMegaMenuProducts = async () => {
@@ -759,6 +904,45 @@ const initializeToyMegaMenu = async () => {
         toySubcategoryLinks.find((link) =>
             link.dataset.toySubcategory === currentSubcategory
         ) || toySubcategoryLinks[0];
+
+    showSubcategoryProducts(defaultLink);
+};
+
+const initializeStationeryMegaMenu = async () => {
+    if (!stationerySubcategoryLinks.length || !stationeryProductPreview) {
+        return;
+    }
+
+    let stationeryProducts = [];
+
+    const showSubcategoryProducts = (link) => {
+        const subcategory =
+            link.dataset.stationerySubcategory ||
+            link.textContent.trim();
+        const products = stationeryProducts.filter((product) =>
+            matchesStationerySubcategory(product, subcategory)
+        );
+
+        setActiveStationerySubcategory(link);
+        renderStationeryProducts(products, subcategory);
+    };
+
+    stationerySubcategoryLinks.forEach((link) => {
+        link.addEventListener("mouseenter", () => {
+            showSubcategoryProducts(link);
+        });
+
+        link.addEventListener("focus", () => {
+            showSubcategoryProducts(link);
+        });
+    });
+
+    stationeryProducts = await fetchMegaMenuProducts();
+
+    const defaultLink =
+        stationerySubcategoryLinks.find((link) =>
+            link.dataset.stationerySubcategory === currentSubcategory
+        ) || stationerySubcategoryLinks[0];
 
     showSubcategoryProducts(defaultLink);
 };
@@ -1009,6 +1193,7 @@ mobileCategoryAccordions.forEach((accordion) => {
 });
     await initializeGroceryMegaMenu();
     await initializeToyMegaMenu();
+    await initializeStationeryMegaMenu();
     // notify components ready
     document.dispatchEvent(new CustomEvent("componentsLoaded"));
 }
