@@ -5,12 +5,12 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/rbacMiddleware");
 const wishlistController = require("../controllers/wishlistController");
-const { safeNumber, safeInteger } = require("../utils/helpers");
+const { safeNumber, safeInteger, safeUUID } = require("../utils/helpers");
 
 // ==================== VALIDATION MIDDLEWARE ====================
 const validateProductId = (req, res, next) => {
-  const productId = safeNumber(req.params.productId || req.body.productId);
-  if (!productId || productId < 1) {
+  const productId = safeUUID(req.params.productId || req.body.productId);
+  if (!productId) {
     return res.status(400).json({
       success: false,
       message: "Valid product ID is required",
@@ -35,7 +35,7 @@ const validateBatchProducts = (req, res, next) => {
     });
   }
   for (const id of productIds) {
-    if (!safeNumber(id) || id < 1) {
+    if (!safeUUID(id)) {
       return res.status(400).json({
         success: false,
         message: `Invalid product ID: ${id}`,

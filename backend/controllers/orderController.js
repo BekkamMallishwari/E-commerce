@@ -7,9 +7,9 @@ const {
     generateOrderSummaryService
 } = require("../services/order.service");
 
-const {
     safeNumber,
     safeInteger,
+    safeUUID,
     sanitizeString,
     getPagination,
     buildPaginationMeta,
@@ -257,9 +257,8 @@ const getUserOrders = async (req, res) => {
     }
 };
 
-// get order by id
 const getOrderById = async (req, res) => {
-    const id = safeInteger(req.params.id);
+    const id = safeUUID(req.params.id);
 
     if (!id) {
         return res.status(400).json({
@@ -336,7 +335,7 @@ const performOrderStatusUpdate = async (connection, id, currentStatus, newStatus
 // update order status
 const updateOrderStatus =
     async (req, res) => {
-        const id = safeInteger(req.params.id);
+        const id = safeUUID(req.params.id);
         const newStatus = sanitizeString(req.body.status).toLowerCase();
 
         const validStatuses = [
@@ -394,7 +393,7 @@ const updateOrderStatus =
 
 // cancel user order
 const cancelUserOrder = async (req, res) => {
-    const id = safeInteger(req.params.id);
+    const id = safeUUID(req.params.id);
 
     if (!id) {
         return res.status(400).json({ success: false, message: "Invalid order ID" });
@@ -464,7 +463,7 @@ const validateOrder = async (req, res) => {
 };
 
 const getOrderSummary = async (req, res) => {
-    const id = safeInteger(req.params.id);
+    const id = safeUUID(req.params.id);
     if (!id) {
         return res.status(400).json({ success: false, message: "Invalid order ID" });
     }
