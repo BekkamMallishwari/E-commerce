@@ -59,8 +59,8 @@ const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
-const integrityRoutes = require('./routes/integrityRoutes');
-const { configIntegrityService } = require('./services/configIntegrityService');
+const driftRoutes = require('./routes/driftRoutes');
+const { architectureDriftService } = require('./services/architectureDriftService');
 
 
 
@@ -151,11 +151,11 @@ app.use('/api/performance', performanceRoutes);
 await capabilityMappingService.initialize();
 
 
-// Initialize integrity service
-await configIntegrityService.initialize();
+// Initialize drift service
+await architectureDriftService.initialize();
 
-// Add integrity routes
-app.use('/api/integrity', integrityRoutes);
+// Add drift routes
+app.use('/api/drift', driftRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
