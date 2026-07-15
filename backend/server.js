@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const impactRoutes = require('./routes/impactRoutes');
+const { impactAnalysisService } = require('./services/impactAnalysisService');
 
+// Initialize impact analysis service
+await impactAnalysisService.initialize();
+
+// Add impact routes
+app.use('/api/impact', impactRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
