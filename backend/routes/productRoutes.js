@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
+
+const authMiddleware = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/rbacMiddleware");
 const { validateCreateProduct, validateUpdateProduct } = require("../middleware/validators/productValidator");
 
@@ -19,6 +21,9 @@ const {
     deleteProductReview
 } = require("../controllers/reviewController");
 
+
+const { authorizeRoles } = require("../middleware/rbacMiddleware");
+const { validateCreateProduct, validateUpdateProduct } = require("../middleware/validators/productValidator");
 
 // --------------------------------------------------------------
 // Validate product ID

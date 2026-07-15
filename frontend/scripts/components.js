@@ -298,7 +298,7 @@ const megaMenuPanels = Array.from(
     document.querySelectorAll(".mega-menu-panel")
 );
 const categoryMenuLinks = document.querySelectorAll(
-    ".category-menu-link, .fashion-category-card, .electronics-category-card, .mega-menu-panel-header a, .mobile-subcategory-panel a"
+    ".category-menu-link, .toy-category-card, .mega-menu-panel-header a, .mobile-subcategory-panel a"
 );
 const mobileCategoryAccordions = Array.from(
     document.querySelectorAll(".mobile-category-accordion")

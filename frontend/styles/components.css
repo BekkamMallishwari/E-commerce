@@ -1775,15 +1775,25 @@ body.dark-theme .cart-drawer-subtotal {
     }
 }
 
-/* Fashion & Electronics Mega Grid Styles */
-.fashion-mega-grid, .electronics-mega-grid {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 12px !important;
-    margin-top: 10px;
+/* ==========================================================================
+   TOYS MEGA MENU STYLES
+   ========================================================================== */
+
+/* Toys Mega Menu Grid Styles */
+.toy-mega-menu-grid {
+    grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 0.8fr) !important;
+    align-items: start;
+    gap: 15px !important;
 }
 
-.fashion-category-card, .electronics-category-card {
+.toy-subcategory-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+}
+
+/* Toys Category Card Styles */
+.toy-category-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1797,13 +1807,13 @@ body.dark-theme .cart-drawer-subtotal {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-.fashion-category-card:hover, .electronics-category-card:hover {
+.toy-category-card:hover {
     transform: translateY(-4px);
     border-color: var(--primary-color, #088178);
     box-shadow: 0 10px 20px rgba(8, 129, 120, 0.1);
 }
 
-.fashion-card-img-wrapper, .electronics-card-img-wrapper {
+.toy-card-img-wrapper {
     width: 64px;
     height: 64px;
     border-radius: 50%;
@@ -1817,19 +1827,18 @@ body.dark-theme .cart-drawer-subtotal {
     justify-content: center;
 }
 
-.fashion-category-card:hover .fashion-card-img-wrapper,
-.electronics-category-card:hover .electronics-card-img-wrapper {
+.toy-category-card:hover .toy-card-img-wrapper {
     border-color: var(--primary-color, #088178);
     transform: scale(1.08);
 }
 
-.fashion-card-img-wrapper img, .electronics-card-img-wrapper img {
+.toy-card-img-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.fashion-category-card span, .electronics-category-card span {
+.toy-category-card span {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-dark, #222);
@@ -1837,32 +1846,61 @@ body.dark-theme .cart-drawer-subtotal {
     line-height: 1.2;
 }
 
-.fashion-category-card:hover span, .electronics-category-card:hover span {
+.toy-category-card:hover span {
+    color: var(--primary-color, #088178);
+}
+
+/* Active State for Toy Cards */
+.toy-category-card.toy-subcategory-link.is-active {
+    border-color: var(--primary-color, #088178);
+    background: rgba(8, 129, 120, 0.03);
+    box-shadow: 0 4px 12px rgba(8, 129, 120, 0.08);
+    transform: translateY(-2px);
+}
+
+.toy-category-card.toy-subcategory-link.is-active .toy-card-img-wrapper {
+    border-color: var(--primary-color, #088178);
+}
+
+.toy-category-card.toy-subcategory-link.is-active span {
     color: var(--primary-color, #088178);
 }
 
 /* Dark Theme overrides */
-body.dark-theme .fashion-category-card, body.dark-theme .electronics-category-card {
+body.dark-theme .toy-category-card {
     background: #222;
     border-color: #333;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-body.dark-theme .fashion-category-card:hover, body.dark-theme .electronics-category-card:hover {
+body.dark-theme .toy-category-card:hover {
     border-color: #39a4d6;
     box-shadow: 0 10px 20px rgba(57, 164, 214, 0.15);
 }
 
-body.dark-theme .fashion-card-img-wrapper, body.dark-theme .electronics-card-img-wrapper {
+body.dark-theme .toy-card-img-wrapper {
     border-color: #1a1a1a;
     background: #1a1a1a;
 }
 
-body.dark-theme .fashion-category-card span, body.dark-theme .electronics-category-card span {
+body.dark-theme .toy-category-card span {
     color: #e0e0e0;
 }
 
-body.dark-theme .fashion-category-card:hover span, body.dark-theme .electronics-category-card:hover span {
+body.dark-theme .toy-category-card:hover span {
     color: #39a4d6;
 }
 
+body.dark-theme .toy-category-card.toy-subcategory-link.is-active {
+    border-color: #39a4d6;
+    background: rgba(57, 164, 214, 0.05);
+    box-shadow: 0 4px 12px rgba(57, 164, 214, 0.1);
+}
+
+body.dark-theme .toy-category-card.toy-subcategory-link.is-active .toy-card-img-wrapper {
+    border-color: #39a4d6;
+}
+
+body.dark-theme .toy-category-card.toy-subcategory-link.is-active span {
+    color: #39a4d6;
+}
