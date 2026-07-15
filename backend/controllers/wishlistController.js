@@ -149,7 +149,39 @@ const wishlistController = {
         }
     },
 
-    // ==================== ADD TO WISHLIST ====================
+    // Check if product is in user's wishlist (Issue #777)
+    checkWishlistStatus: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const productId = safeNumber(req.params.productId);
+
+            if (!productId || productId < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Valid product ID is required"
+                });
+            }
+
+            const [rows] = await promisePool.query(
+                "SELECT id FROM wishlist_items WHERE user_id = ? AND product_id = ?",
+                [userId, productId]
+            );
+
+            return res.status(200).json({
+                success: true,
+                inWishlist: rows.length > 0
+            });
+
+        } catch (error) {
+            console.error("CHECK WISHLIST STATUS ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to check wishlist status"
+            });
+        }
+    },
+
+    // Add to wishlist
     addToWishlist: async (req, res) => {
         try {
             const userId = req.user.id;
@@ -164,7 +196,6 @@ const wishlistController = {
                 });
             }
 
-            // Check if product exists and is active
             const [products] = await promisePool.query(
                 "SELECT id, name, price, stock FROM products WHERE id = ? AND is_active = 1",
                 [validation.id]
@@ -191,7 +222,6 @@ const wishlistController = {
                 });
             }
 
-            // Add to wishlist
             await promisePool.query(`
                 INSERT INTO wishlist_items (user_id, product_id, created_at)
                 VALUES (?, ?, NOW())
@@ -204,8 +234,8 @@ const wishlistController = {
 
             return res.status(201).json({
                 success: true,
-                message: "Added to wishlist ❤️",
-                productId: validation.id
+                message: "Added to wishlist",
+                action: "added"
             });
 
         } catch (error) {
@@ -252,7 +282,7 @@ const wishlistController = {
             return res.status(200).json({
                 success: true,
                 message: "Removed from wishlist",
-                productId: validation.id
+                action: "removed"
             });
 
         } catch (error) {
