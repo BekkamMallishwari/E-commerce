@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const debtRoutes = require('./routes/debtRoutes');
+const { technicalDebtService } = require('./services/technicalDebtService');
 
+// Initialize technical debt service
+await technicalDebtService.initialize();
+
+// Add debt routes
+app.use('/api/debt', debtRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
