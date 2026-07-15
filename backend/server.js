@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const graphRoutes = require('./routes/graphRoutes');
+const { knowledgeGraphService } = require('./services/knowledgeGraphService');
 
+// Initialize knowledge graph service
+await knowledgeGraphService.initialize();
+
+// Add graph routes
+app.use('/api/graph', graphRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
