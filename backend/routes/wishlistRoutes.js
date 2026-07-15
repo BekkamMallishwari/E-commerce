@@ -160,26 +160,8 @@ router.get("/share/:token",validateShareToken, wishlistController.getSharedWishl
 // Get wishlist with pagination
 router.get("/", authMiddleware, wishlistController.getUserWishlist);
 
-// Get wishlist count
-router.get("/count", authMiddleware, wishlistController.getWishlistCount);
-
-// Get wishlist analytics
-router.get(
-  "/analytics",
-  authMiddleware,
-  wishlistController.getWishlistAnalytics,
-);
-
-// Export wishlist (CSV/JSON)
-router.get("/export", authMiddleware,validateExportFormat , wishlistController.exportWishlist);
-
-// Check if product in wishlist
-router.get(
-  "/check/:productId",
-  authMiddleware,
-  validateProductId,
-  wishlistController.checkWishlist,
-);
+// Check if product is in wishlist (Issue #777)
+router.get("/status/:productId", authMiddleware, wishlistController.checkWishlistStatus);
 
 // Add to wishlist
 router.post(

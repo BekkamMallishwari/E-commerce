@@ -28,6 +28,171 @@
         shareDropdown: document.getElementById("share-dropdown"), // 🔥 NEW
         shareToast: document.getElementById("share-toast") // 🔥 NEW
     };
+}
+
+// loading state
+function showLoadingState() {
+
+    document.body.classList.add(
+        "loading"
+    );
+}
+
+function hideLoadingState() {
+
+    document.body.classList.remove(
+        "loading"
+    );
+}
+
+// cache helpers
+function getCachedProduct() {
+
+    return AppUtils.getJSON(
+        `product-${productId}`,
+        null
+    );
+}
+
+function cacheProduct(
+    product
+) {
+
+    AppUtils.setJSON(
+        `product-${productId}`,
+        product
+    );
+}
+
+// ========================================
+// Breadcrumb Navigation (Issue #344)
+// ========================================
+function updateBreadcrumb(product) {
+    const categoryEl = document.getElementById('breadcrumb-category');
+    const categoryLink = document.getElementById('breadcrumb-category-link');
+    const productNameEl = document.getElementById('breadcrumb-product-name');
+
+    if (!product || !productNameEl) return;
+
+    // Update product name
+    productNameEl.textContent = product.name || 'Product';
+
+    // Update category if available
+    if (product.category) {
+        categoryEl.style.display = 'inline-block';
+        categoryLink.textContent = product.category.charAt(0).toUpperCase() + product.category.slice(1);
+        categoryLink.href = `shop.html?category=${encodeURIComponent(product.category)}`;
+    } else {
+        categoryEl.style.display = 'none';
+    }
+}
+
+// ========================================
+// Wishlist Status & Toggle (Issue #777)
+// ========================================
+async function updateWishlistIcon(productId) {
+    const wishlistBtn = document.getElementById('wishlist-btn');
+    if (!wishlistBtn) return;
+
+    const token = localStorage.getItem('token');
+    const icon = wishlistBtn.querySelector('i');
+
+    if (!token) {
+        icon.classList.remove('fas');
+        icon.classList.add('far');
+        wishlistBtn.dataset.inWishlist = 'false';
+        return;
+    }
+
+    try {
+        // Check local wishlist cache first
+        const wishlist = AppUtils.getWishlist() || [];
+        const localExists = wishlist.some(item => item.id === productId);
+
+        if (localExists) {
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            wishlistBtn.dataset.inWishlist = 'true';
+            return;
+        }
+
+        // Fallback to API
+        const response = await AppUtils.apiRequest(`/wishlist/status/${productId}`);
+        if (response.success && response.inWishlist) {
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            wishlistBtn.dataset.inWishlist = 'true';
+        } else {
+            icon.classList.remove('fas');
+            icon.classList.add('far');
+            wishlistBtn.dataset.inWishlist = 'false';
+        }
+    } catch (error) {
+        console.error('Wishlist status error:', error);
+        icon.classList.remove('fas');
+        icon.classList.add('far');
+        wishlistBtn.dataset.inWishlist = 'false';
+    }
+}
+
+async function toggleWishlist(productId) {
+    const wishlistBtn = document.getElementById('wishlist-btn');
+    if (!wishlistBtn) return;
+
+    const icon = wishlistBtn.querySelector('i');
+    const isInWishlist = wishlistBtn.dataset.inWishlist === 'true';
+
+    try {
+        const endpoint = isInWishlist ? '/wishlist/remove' : '/wishlist/add';
+        const response = await AppUtils.apiRequest(endpoint, {
+            method: 'POST',
+            body: JSON.stringify({ productId })
+        });
+
+        if (response.success) {
+            let wishlist = AppUtils.getWishlist() || [];
+
+            if (response.action === 'added' || (!isInWishlist && response.success)) {
+                AppUtils.notify('Added to wishlist ❤️', 'success');
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                wishlistBtn.dataset.inWishlist = 'true';
+                // Update local cache
+                const product = currentProductData || { id: productId };
+                wishlist.push(product);
+                AppUtils.saveWishlist(wishlist);
+            } else {
+                AppUtils.notify('Removed from wishlist 💔', 'info');
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                wishlistBtn.dataset.inWishlist = 'false';
+                // Update local cache
+                wishlist = wishlist.filter(item => item.id !== productId);
+                AppUtils.saveWishlist(wishlist);
+            }
+        } else {
+            AppUtils.notify(response.message || 'Failed to update wishlist', 'error');
+        }
+    } catch (error) {
+        console.error('Wishlist toggle error:', error);
+        AppUtils.notify('Failed to update wishlist', 'error');
+    }
+}
+
+// fetch product
+async function fetchProduct() {
+
+    if (
+        isLoading
+    ) {
+
+        return;
+    }
+
+    isLoading =
+        true;
+
+    showLoadingState();
 
     // ============================================
     // PRODUCT STATE
@@ -68,19 +233,46 @@
         return Math.max(1, parseInt(value, 10) || 1);
     }
 
-    function getFallbackProduct() {
-        return {
-            id: 1,
-            brand: "AnthropicBots",
-            name: "Nike Hoodie",
-            category: "Fashion",
-            price: 2999,
-            image: "/assets/images/f1.jpg",
-            description: "Premium cotton hoodie with modern fashion styling and comfortable fit.",
-            stock: 12,
-            rating: 4.5,
-            discount_percent: 10
-        };
+    renderProduct(
+        product
+    );
+
+    // ========== WISHLIST ICON STATUS ==========
+    updateWishlistIcon(product.id);
+
+    // Attach wishlist button event listener
+    if (productElements.wishlistBtn) {
+        productElements.wishlistBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleWishlist(product.id);
+        });
+    }
+
+    if (
+        typeof setupVariants ===
+        "function"
+    ) {
+
+        setupVariants(
+            product
+        );
+    }
+    setCurrentProduct(
+        product
+    );
+
+    setupCartActions(
+        product
+    );
+
+    if (
+        typeof loadProductReviews ===
+        "function"
+    ) {
+
+        loadProductReviews(
+            product.id
+        );
     }
 
     function showLoadingState() {
