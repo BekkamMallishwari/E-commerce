@@ -48,6 +48,8 @@ const {
   SHARE_TOKEN_REGEX
 } = require("../config/constants");
 
+const { MAX_WISHLIST_SYNC_LIMIT, SUPPORTED_EXPORT_FORMATS } = require("../config/constants");
+
 // ==================== VALIDATION MIDDLEWARE ====================
 const validateProductId = (req, res, next) => {
   const productId = safeNumber(req.params.productId || req.body.productId);
@@ -131,19 +133,24 @@ const validateShareToken = (req, res, next) => {
     });
   }
 
-  // 4. Validate token against expected format (UUID)
-  if (!SHARE_TOKEN_REGEX.test(token)) {
+const validateExportFormat = (req, res, next) => {
+  const format = req.query.format; 
+
+  if (!format) {
+    req.query.format = 'csv'; // Default to CSV
+    return next();
+  }
+
+  if (!SUPPORTED_EXPORT_FORMATS.includes(format)) {
     return res.status(400).json({
       success: false,
-      message: "Invalid share token format. Please provide a valid UUID (e.g., 123e4567-e89b-12d3-a456-426614174000).",
+      message: `Unsupported export format: "${format}". Allowed formats are: ${SUPPORTED_EXPORT_FORMATS.join(', ')}.`,
     });
   }
 
-  // 5. Attach validated token to request (optional, good practice)
-  req.validatedShareToken = token.trim();
-
   next();
 };
+
 // ==================== PUBLIC ROUTES ====================
 // Get shared wishlist by token (No auth required)
 router.get("/share/:token",validateShareToken, wishlistController.getSharedWishlist);
@@ -164,7 +171,7 @@ router.get(
 );
 
 // Export wishlist (CSV/JSON)
-router.get("/export", authMiddleware, wishlistController.exportWishlist);
+router.get("/export", authMiddleware,validateExportFormat , wishlistController.exportWishlist);
 
 // Check if product in wishlist
 router.get(
