@@ -149,7 +149,39 @@ const wishlistController = {
         }
     },
 
-    // ==================== ADD TO WISHLIST ====================
+    // Check if product is in user's wishlist (Issue #777)
+    checkWishlistStatus: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const productId = safeNumber(req.params.productId);
+
+            if (!productId || productId < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Valid product ID is required"
+                });
+            }
+
+            const [rows] = await promisePool.query(
+                "SELECT id FROM wishlist_items WHERE user_id = ? AND product_id = ?",
+                [userId, productId]
+            );
+
+            return res.status(200).json({
+                success: true,
+                inWishlist: rows.length > 0
+            });
+
+        } catch (error) {
+            console.error("CHECK WISHLIST STATUS ERROR:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to check wishlist status"
+            });
+        }
+    },
+
+    // Add to wishlist
     addToWishlist: async (req, res) => {
         try {
             const userId = req.user.id;
@@ -164,7 +196,6 @@ const wishlistController = {
                 });
             }
 
-            // Check if product exists and is active
             const [products] = await promisePool.query(
                 "SELECT id, name, price, stock FROM products WHERE id = ? AND is_active = 1",
                 [validation.id]
@@ -191,7 +222,6 @@ const wishlistController = {
                 });
             }
 
-            // Add to wishlist
             await promisePool.query(`
                 INSERT INTO wishlist_items (user_id, product_id, created_at)
                 VALUES (?, ?, NOW())
@@ -204,8 +234,8 @@ const wishlistController = {
 
             return res.status(201).json({
                 success: true,
-                message: "Added to wishlist ❤️",
-                productId: validation.id
+                message: "Added to wishlist",
+                action: "added"
             });
 
         } catch (error) {
@@ -252,7 +282,7 @@ const wishlistController = {
             return res.status(200).json({
                 success: true,
                 message: "Removed from wishlist",
-                productId: validation.id
+                action: "removed"
             });
 
         } catch (error) {
@@ -836,6 +866,107 @@ const wishlistController = {
                 message: 'Failed to clear cache'
             });
         }
+    }
+};
+
+// 1. Get any user's wishlist (Admin)
+exports.getAdminUserWishlist = async (req, res) => {
+    try {
+        const { safeInteger } = require("../utils/helpers"); // Require helper if not top-level
+        const db = require("../config/db");
+
+        const userId = safeInteger(req.params.userId);
+        if (!userId || userId < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid user ID is required",
+            });
+        }
+
+        const [rows] = await db.query(
+            `
+            SELECT 
+                p.id, 
+                p.name, 
+                p.price, 
+                p.image, 
+                p.brand, 
+                p.stock,
+                w.created_at as added_at,
+                u.name as user_name,
+                u.email as user_email
+            FROM wishlist_items w
+            JOIN products p ON w.product_id = p.id
+            JOIN users u ON w.user_id = u.id
+            WHERE w.user_id = ?
+            ORDER BY w.created_at DESC
+        `,
+            [userId],
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: rows,
+        });
+    } catch (error) {
+        console.error("ADMIN GET WISHLIST ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch user wishlist",
+        });
+    }
+};
+
+// 2. Get wishlist stats (Admin)
+exports.getWishlistStats = async (req, res) => {
+    try {
+        const db = require("../config/db");
+
+        // Get total wishlist items across all users
+        const [totalItems] = await db.query(
+            "SELECT COUNT(*) as total FROM wishlist_items",
+        );
+
+        // Get unique users with wishlist
+        const [uniqueUsers] = await db.query(
+            "SELECT COUNT(DISTINCT user_id) as users FROM wishlist_items",
+        );
+
+        // Get most wishlisted products
+        const [topProducts] = await db.query(`
+            SELECT p.id, p.name, COUNT(*) as wishlist_count
+            FROM wishlist_items w
+            JOIN products p ON w.product_id = p.id
+            GROUP BY p.id
+            ORDER BY wishlist_count DESC
+            LIMIT 10
+        `);
+
+        // Get recent activity
+        const [recentActivity] = await db.query(`
+            SELECT w.*, p.name as product_name, u.name as user_name
+            FROM wishlist_items w
+            JOIN products p ON w.product_id = p.id
+            JOIN users u ON w.user_id = u.id
+            ORDER BY w.created_at DESC
+            LIMIT 20
+        `);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                totalItems: totalItems[0]?.total || 0,
+                uniqueUsers: uniqueUsers[0]?.users || 0,
+                topProducts: topProducts,
+                recentActivity: recentActivity,
+            },
+        });
+    } catch (error) {
+        console.error("WISHLIST STATS ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch wishlist stats",
+        });
     }
 };
 

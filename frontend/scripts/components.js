@@ -147,12 +147,12 @@ async function initializeComponents() {
     const loadTasks = [
         loadComponent(
             "navbar",
-            "./components/navbar.html"
+            "./components/navbar.html?v=" + new Date().getTime()
         ),
 
         loadComponent(
             "footer",
-            "./components/footer.html"
+            "./components/footer.html?v=" + new Date().getTime()
         )
     ];
 
@@ -185,7 +185,7 @@ async function initializeComponents() {
         loadTasks.push(
             loadComponent(
                 "cart-drawer-host",
-                "./components/cart-drawer.html"
+                "./components/cart-drawer.html?v=" + new Date().getTime()
             )
         );
     }
@@ -232,6 +232,61 @@ navLinks.forEach(link => {
         link.setAttribute('aria-current', 'page');
     }
 });
+// ===== NAVBAR SEARCH =====
+    const navSearchInput = document.getElementById("searchInput");
+    if (navSearchInput) {
+        navSearchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                const query = navSearchInput.value.trim();
+                if (query) {
+                    window.location.href = `shop.html?search=${encodeURIComponent(query)}`;
+                }
+            }
+        });
+
+        navSearchInput.addEventListener("input", () => {
+            const query = navSearchInput.value.trim();
+            const dropdown = document.getElementById("suggestionsDropdown");
+            if (!dropdown) return;
+
+            if (!query) {
+                dropdown.style.display = "none";
+                dropdown.innerHTML = "";
+                return;
+            }
+
+            const allProducts = window.allProducts || [];
+            const matches = allProducts
+                .filter(p => p.name?.toLowerCase().includes(query.toLowerCase()))
+                .slice(0, 5);
+
+            if (!matches.length) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            dropdown.innerHTML = matches.map(p => `
+                <div class="suggestion-item" style="padding:8px;cursor:pointer;border-bottom:1px solid #eee;">
+                    ${p.name}
+                </div>
+            `).join("");
+
+            dropdown.style.display = "block";
+
+            dropdown.querySelectorAll(".suggestion-item").forEach((item, i) => {
+                item.addEventListener("click", () => {
+                    window.location.href = `shop.html?search=${encodeURIComponent(matches[i].name)}`;
+                });
+            });
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".search-container")) {
+                const dropdown = document.getElementById("suggestionsDropdown");
+                if (dropdown) dropdown.style.display = "none";
+            }
+        });
+    }
 
 const categoryMenuItem = document.querySelector(".category-menu-item");
 const categoryMenuToggle = document.getElementById("category-menu-toggle");
@@ -243,7 +298,7 @@ const megaMenuPanels = Array.from(
     document.querySelectorAll(".mega-menu-panel")
 );
 const categoryMenuLinks = document.querySelectorAll(
-    ".category-menu-link, .mega-menu-panel-header a, .mobile-subcategory-panel a"
+    ".category-menu-link, .toy-category-card, .mega-menu-panel-header a, .mobile-subcategory-panel a"
 );
 const mobileCategoryAccordions = Array.from(
     document.querySelectorAll(".mobile-category-accordion")
@@ -983,6 +1038,57 @@ const focusMegaCategoryByOffset = (currentCategory, offset) => {
     activateMegaCategory(nextCategory?.dataset.megaCategory);
 };
 
+const ensureProductCardFactory = async () => {
+    if (typeof window.createProductCard === "function") {
+        return;
+    }
+    await loadScript("scripts/product-cards-home.js");
+};
+
+const getFashionProducts = async () => {
+    const products = await fetchMegaMenuProducts();
+    const fashionCategories = ["fashion", "footwear", "watches", "bags", "accessories"];
+    return products.filter((p) => fashionCategories.includes(String(p.category || "").toLowerCase()));
+};
+
+const getProductsForFashionSubcategory = (fashionProducts, subcategory) => {
+    const sub = subcategory.toLowerCase();
+    return fashionProducts.filter((p) => {
+        // If product already has subcategory from API, use it first
+        const pSub = String(p.subcategory || p.sub_category || p.subCategory || "").toLowerCase();
+        if (pSub && pSub.includes(sub)) {
+            return true;
+        }
+
+        const name = String(p.name || "").toLowerCase();
+        const desc = String(p.description || "").toLowerCase();
+        const text = `${name} ${desc}`;
+
+        if (sub.includes("men's clothing") || sub === "men") {
+            return (text.includes("men") || text.includes("boy") || text.includes("shirt") || text.includes("jeans") || text.includes("hoodie")) && !text.includes("women");
+        }
+        if (sub.includes("women's clothing") || sub === "women") {
+            return text.includes("women") || text.includes("girl") || text.includes("dress") || text.includes("kurti") || text.includes("top");
+        }
+        if (sub.includes("kids")) {
+            return text.includes("kid") || text.includes("child") || text.includes("boy") || text.includes("girl") || text.includes("traditional");
+        }
+        if (sub.includes("footwear") || sub.includes("shoes") || sub.includes("sneaker")) {
+            return text.includes("shoe") || text.includes("shoes") || text.includes("sneaker") || text.includes("sneakers") || text.includes("footwear");
+        }
+        if (sub.includes("watches") || sub.includes("watch")) {
+            return text.includes("watch");
+        }
+        if (sub.includes("bags") || sub.includes("bag")) {
+            return text.includes("bag") || text.includes("handbag") || text.includes("backpack");
+        }
+        if (sub.includes("accessories")) {
+            return text.includes("accessory") || text.includes("accessories") || text.includes("sunglasses") || text.includes("belt");
+        }
+        return false;
+    });
+};
+
 const renderFashionMenuProducts = async (link) => {
     const fashionProductsContainer =
         document.querySelector("[data-fashion-products]");
@@ -1010,7 +1116,7 @@ const renderFashionMenuProducts = async (link) => {
         );
 
         document
-            .querySelectorAll("#mega-panel-fashion .category-menu-link")
+            .querySelectorAll("#mega-panel-fashion .category-menu-link, #mega-panel-fashion .fashion-category-card")
             .forEach((categoryLink) => {
                 categoryLink.classList.toggle("is-preview-active", categoryLink === link);
             });
@@ -1134,7 +1240,7 @@ categoryMenuLinks.forEach((link) => {
 });
 
 const fashionSubcategoryLinks = Array.from(
-    document.querySelectorAll("#mega-panel-fashion .category-menu-link")
+    document.querySelectorAll("#mega-panel-fashion .category-menu-link, #mega-panel-fashion .fashion-category-card")
 );
 
 fashionSubcategoryLinks.forEach((link) => {
