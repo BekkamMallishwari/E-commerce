@@ -58,6 +58,10 @@ app.use('/api/ai-feed', aiFeedRoutes);
 const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+
+// Add with other route imports
+const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
+
 // Add with other imports
 const complexityRoutes = require('./routes/complexityRoutes');
 const { architectureComplexityService } = require('./services/architectureComplexityService');
@@ -158,11 +162,9 @@ await capabilityMappingService.initialize();
 initializeContainer();
 
 
-// Initialize complexity service
-await architectureComplexityService.initialize();
 
-// Add complexity routes
-app.use('/api/complexity', complexityRoutes);
+// Add recently viewed routes
+app.use('/api/recently-viewed', recentlyViewedRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
