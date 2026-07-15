@@ -9,13 +9,16 @@ const morgan = require("morgan");
 const timeout = require("connect-timeout");
 const fs = require("fs");
 const path = require("path");
-const setupProcessEventHandlers = require('./src/utils/processEventHandlers');
-const setupGracefulShutdown = require('./src/utils/gracefulShutdown');
+const setupProcessEventHandlers = require('./utils/processEventHandlers');
+const setupGracefulShutdown = require('./utils/gracefulShutdown');
 
 const { apiLimiter, adminLimiter, mcpLimiter } = require('./config/rateLimiters');
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/corsMiddleware");
+
+// init app early so route and middleware registration can safely use it
+const app = express();
 
 // Add with other imports
 const responseExampleRoutes = require('./routes/responseExampleRoutes');
@@ -27,12 +30,6 @@ app.use(standardizeResponse);
 // Add response example routes (for testing)
 app.use('/api/response-example', responseExampleRoutes);
 
-const { buildHealthResponse } = require("./utils/healthResponseBuilder");
-const { logServerStartup } = require("./utils/serverStartupLogger");
-const { errorLogStream } = require("./utils/logstreams");
-
-// init app early so route and middleware registration can safely use it
-const app = express();
 
 const logDir = path.join(process.cwd(), "logs");
 // Add with other route imports
@@ -58,8 +55,10 @@ const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 const healthRoutes = require('./routes/healthRoutes');
 const { healthScoreService } = require('./services/healthScoreService');
 
-// Initialize health score service
-await healthScoreService.initialize();
+// Initialize health score service asynchronously
+healthScoreService.initialize().catch(err => {
+    console.error('Failed to initialize health score service:', err);
+});
 
 // Add health routes (BEFORE any other routes)
 app.use('/health', healthRoutes);
@@ -67,8 +66,10 @@ app.use('/health', healthRoutes);
 const metricsRoutes = require('./routes/metricsRoutes');
 const { metricsAggregationService } = require('./services/metricsAggregationService');
 
-// Initialize metrics service
-await metricsAggregationService.initialize();
+// Initialize metrics service asynchronously
+metricsAggregationService.initialize().catch(err => {
+    console.error('Failed to initialize metrics aggregation service:', err);
+});
 
 // Add metrics routes
 app.use('/api/metrics', metricsRoutes);
@@ -87,8 +88,10 @@ notificationBroker.registerChannel('in_app', inAppChannel.handler);
 notificationBroker.registerChannel('email', emailChannel.handler);
 notificationBroker.registerChannel('webhook', webhookChannel.handler);
 
-// Initialize notification broker
-await notificationBroker.initialize();
+// Initialize notification broker asynchronously
+notificationBroker.initialize().catch(err => {
+    console.error('Failed to initialize notification broker:', err);
+});
 
 
 // Add notification routes
@@ -109,8 +112,10 @@ const { traceRequest } = require('./middleware/tracingMiddleware');
 const { tracingService } = require('./services/tracingService');
 
 
-// Initialize tracing service
-await tracingService.initialize();
+// Initialize tracing service asynchronously
+tracingService.initialize().catch(err => {
+    console.error('Failed to initialize tracing service:', err);
+});
 
 // Add tracing middleware BEFORE any routes
 app.use(traceRequest);
@@ -132,8 +137,10 @@ const policyRoutes = require('./routes/policyRoutes');
 const { policyEngine } = require('./services/policyEngineService');
 
 
-// Initialize policy engine
-await policyEngine.initialize();
+// Initialize policy engine asynchronously
+policyEngine.initialize().catch(err => {
+    console.error('Failed to initialize policy engine:', err);
+});
 
 // Add policy routes
 app.use('/api/policies', policyRoutes);
@@ -144,8 +151,10 @@ const outboxRoutes = require('./routes/outboxRoutes');
 const { outboxService } = require('./services/outboxService');
 
 
-// Initialize outbox service
-await outboxService.initialize();
+// Initialize outbox service asynchronously
+outboxService.initialize().catch(err => {
+    console.error('Failed to initialize outbox service:', err);
+});
 
 // Add outbox routes
 app.use('/api/outbox', outboxRoutes);
@@ -172,8 +181,10 @@ for (const [type, handler] of Object.entries(jobHandlers)) {
     jobQueue.registerHandler(type, handler);
 }
 
-// Initialize job queue
-await jobQueue.initialize();
+// Initialize job queue asynchronously
+jobQueue.initialize().catch(err => {
+    console.error('Failed to initialize job queue:', err);
+});
 
 // Add job routes
 app.use('/api/jobs', jobRoutes);
@@ -181,8 +192,10 @@ app.use('/api/jobs', jobRoutes);
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
 
-// Initialize feature flag service
-await featureFlagService.initialize();
+// Initialize feature flag service asynchronously
+featureFlagService.initialize().catch(err => {
+    console.error('Failed to initialize feature flag service:', err);
+});
 
 // Add flag routes
 app.use('/api/flags', flagRoutes);
@@ -217,8 +230,10 @@ app.use('/api/rules', ruleRoutes);
 const pluginRoutes = require('./routes/pluginRoutes');
 const { pluginSystem } = require('./services/pluginSystemService');
 
-// Initialize plugin system
-await pluginSystem.initialize();
+// Initialize plugin system asynchronously
+pluginSystem.initialize().catch(err => {
+    console.error('Failed to initialize plugin system:', err);
+});
 
 // Add plugin routes
 app.use('/api/plugins', pluginRoutes);
@@ -508,8 +523,7 @@ setupProcessEventHandlers(errorLogStream);
 // Initialize graceful shutdown logic
 setupGracefulShutdown(server);
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+// Graceful shutdown event listeners are already setup inside setupGracefulShutdown
 
 // Start server
 server.listen(PORT, "0.0.0.0", () => {

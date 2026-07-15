@@ -481,6 +481,7 @@ async function initializeDatabase() {
 }
 
 module.exports = promisePool;
+module.exports.promise = promisePool;
 module.exports.rawPool = pool;
 module.exports.isConnected = () => dbConnected;
 module.exports.query = query;
@@ -501,13 +502,17 @@ module.exports.RETRY_CONFIG = RETRY_CONFIG;
 process.on('uncaughtException', async (error) => {
   logger.error(`Uncaught exception: ${error.message}`);
   logger.error(error.stack);
-  await shutdown();
+  if (process.env.NODE_ENV === 'production') {
+    await shutdown();
+  }
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
   logger.error('Unhandled rejection:');
   logger.error(reason);
-  await shutdown();
+  if (process.env.NODE_ENV === 'production') {
+    await shutdown();
+  }
 });
 
 if (process.env.NODE_ENV !== 'test') {
