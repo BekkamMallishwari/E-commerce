@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const db = require("../config/db");
 const { sanitizeString, safeArray } = require("../utils/helpers");
-const cookieOptions = require("../config/cookieConfig");
+const { getClearCookieOptions } = require("../config/cookieConfig");
 
 // Appwrite SDK
 const { Client, Account, ID, Databases } = require('node-appwrite');
@@ -373,9 +373,9 @@ const logout = async (req, res) => {
             );
         }
 
-        // Clear cookies using shared cookieOptions
-        res.clearCookie('accessToken', cookieOptions);
-        res.clearCookie('refreshToken', cookieOptions);
+        // Clear cookies using shared cookie options
+        res.clearCookie('accessToken', getClearCookieOptions());
+        res.clearCookie('refreshToken', getClearCookieOptions('/api/auth/refresh'));
 
         console.log(`🔓 User ${userId} logged out successfully`);
 
@@ -692,210 +692,41 @@ const getFraudStatus = async (req, res) => {
     }
 };
 
+/**
+ * Get current authenticated user details
+ */
 const getMe = async (req, res) => {
     try {
-        if (!req.user) {
-            return res.status(401).json({ success: false, message: "Unauthorized" });
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized access"
+            });
+        }
+        const [rows] = await db.query(
+            "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
+            [userId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
         }
         return res.status(200).json({
             success: true,
-            user: {
-                id: req.user.id,
-                name: req.user.name,
-                email: req.user.email,
-                role: req.user.role
-            }
+            user: rows[0]
         });
     } catch (error) {
-        console.error("GET ME ERROR:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-
-// ==================== 2FA / TOTP METHODS ====================
-
-const verify2FA = async (req, res) => {
-    try {
-        const { tempToken, totpCode } = req.body;
-        
-        if (!tempToken || !totpCode) {
-            return res.status(400).json({ success: false, message: "Token and TOTP code required" });
-        }
-        
-        // Verify temp token
-        let decoded;
-        try {
-            decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
-        } catch (err) {
-            return res.status(401).json({ success: false, message: "Invalid or expired temporary token" });
-        }
-        
-        if (!decoded.is2FA) {
-            return res.status(400).json({ success: false, message: "Invalid token type" });
-        }
-
-        // Rate limiting for 2FA attempts to prevent brute force
-        if (isOTPRateLimited(`2fa_${decoded.email}`)) {
-            return res.status(429).json({ 
-                success: false, 
-                message: "Too many failed attempts. Please wait 5 minutes." 
-            });
-        }
-        
-        const [users] = await db.query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [decoded.id]);
-        if (!safeArray(users).length) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-        
-        const user = users[0];
-        
-        if (!user.totp_secret || user.is_2fa_enabled !== 1) {
-            return res.status(400).json({ success: false, message: "2FA is not fully enabled on this account" });
-        }
-        
-        // Decrypt the secret
-        const secret = decrypt(user.totp_secret);
-        if (!secret) {
-            return res.status(500).json({ success: false, message: "Error decrypting 2FA secret" });
-        }
-        
-        const isValid = authenticator.verify({ token: totpCode, secret });
-        if (!isValid) {
-            return res.status(401).json({ success: false, message: "Invalid TOTP code" });
-        }
-        
-        // Issue tokens
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken();
-
-        await db.query(
-            `UPDATE users SET refresh_token = ?, last_login = NOW() WHERE id = ?`, 
-            [refreshToken, user.id]
-        );
-
-        return sendAuthResponse(res, { 
-            message: "Login successful", 
-            accessToken, 
-            refreshToken, 
-            user 
+        console.error("Error in getMe:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
         });
-        
-    } catch (error) {
-        console.error("VERIFY 2FA ERROR:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
-const generate2FA = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        
-        // Only allow admins (or users if policy changes) to generate 2FA
-        if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-             return res.status(403).json({ success: false, message: "Not authorized to setup 2FA" });
-        }
-        
-        const secret = authenticator.generateSecret();
-        const encryptedSecret = encrypt(secret);
-        
-        // Store secret but do not enable 2FA yet
-        await db.query(
-            `UPDATE users SET totp_secret = ?, is_2fa_enabled = 0 WHERE id = ?`,
-            [encryptedSecret, userId]
-        );
-        
-        const appName = "E-Commerce-Admin";
-        const otpauthUrl = authenticator.keyuri(req.user.email, appName, secret);
-        
-        qrcode.toDataURL(otpauthUrl, (err, imageUrl) => {
-            if (err) {
-                console.error("QR Code Error:", err);
-                return res.status(500).json({ success: false, message: "Error generating QR code" });
-            }
-            
-            return res.status(200).json({
-                success: true,
-                message: "2FA secret generated. Scan QR code to setup.",
-                qrCode: imageUrl,
-                secret: secret // Returning secret once for manual setup
-            });
-        });
-        
-    } catch (error) {
-        console.error("GENERATE 2FA ERROR:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-const enable2FA = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { totpCode } = req.body;
-        
-        if (!totpCode) {
-            return res.status(400).json({ success: false, message: "TOTP code required" });
-        }
-        
-        const [users] = await db.query(`SELECT totp_secret FROM users WHERE id = ? LIMIT 1`, [userId]);
-        if (!safeArray(users).length || !users[0].totp_secret) {
-            return res.status(400).json({ success: false, message: "2FA setup not initiated" });
-        }
-        
-        const secret = decrypt(users[0].totp_secret);
-        if (!secret) {
-             return res.status(500).json({ success: false, message: "Error decrypting 2FA secret" });
-        }
-        
-        const isValid = authenticator.verify({ token: totpCode, secret });
-        if (!isValid) {
-            return res.status(401).json({ success: false, message: "Invalid TOTP code" });
-        }
-        
-        await db.query(
-            `UPDATE users SET is_2fa_enabled = 1 WHERE id = ?`,
-            [userId]
-        );
-        
-        return res.status(200).json({ success: true, message: "2FA has been successfully enabled" });
-        
-    } catch (error) {
-        console.error("ENABLE 2FA ERROR:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-const disable2FA = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { password } = req.body;
-        
-        if (!password) {
-            return res.status(400).json({ success: false, message: "Password required to disable 2FA" });
-        }
-        
-        const [users] = await db.query(`SELECT password FROM users WHERE id = ? LIMIT 1`, [userId]);
-        if (!safeArray(users).length) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-        
-        const isMatch = await bcrypt.compare(password, users[0].password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: "Invalid password" });
-        }
-        
-        await db.query(
-            `UPDATE users SET is_2fa_enabled = 0, totp_secret = NULL WHERE id = ?`,
-            [userId]
-        );
-        
-        return res.status(200).json({ success: true, message: "2FA has been disabled" });
-        
-    } catch (error) {
-        console.error("DISABLE 2FA ERROR:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
-    }
-};
 
 // ==================== EXPORTS ====================
 module.exports = {
@@ -911,9 +742,5 @@ module.exports = {
     validateToken,  
     getSecurityAudit, 
     getFraudStatus,
-    getMe,
-    verify2FA,
-    generate2FA,
-    enable2FA,
-    disable2FA
+    getMe
 };

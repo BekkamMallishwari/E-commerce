@@ -113,6 +113,8 @@ function optionalAuth(req, res, next) {
     next();
 }
 
+// Export as a function directly (supporting direct require)
 module.exports = authMiddleware;
+// Also attach them as properties (supporting destructuring require)
 module.exports.authMiddleware = authMiddleware;
 module.exports.optionalAuth = optionalAuth;

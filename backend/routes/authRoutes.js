@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const cookieOptions = require("../config/cookieConfig");
 // ======================== CONTROLLERS ========================
 const {
     signup,
@@ -56,7 +55,7 @@ if (!process.env.JWT_SECRET) {
 // ❌ `validateRequiredFields` helper removed completely
 // ❌ `sanitizeString` import removed because it's now handled in the middleware
 
-// Inline applyCaptchaCheck removed to resolve duplicate declaration
+// CAPTCHA check is imported from captchaMiddleware
 
 // ======================== ROUTES ========================
 
