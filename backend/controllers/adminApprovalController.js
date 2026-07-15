@@ -125,7 +125,6 @@ exports.decideApproval = async (req, res) => {
     }
 
     if (action === 'approve') {
-      // Process the order with approved discount
       // ... order processing logic
     }
 
