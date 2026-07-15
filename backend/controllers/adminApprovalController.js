@@ -47,6 +47,15 @@ exports.decideApproval = async (req, res) => {
     const { id } = req.params;
     const { action, notes } = req.body;
 
+    
+    if (!id || !/^[1-9]\d*$/.test(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid approval request identifier. It must be a positive integer.'
+      });
+    }
+    // ==========================================
+
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({
         success: false,
@@ -54,7 +63,7 @@ exports.decideApproval = async (req, res) => {
       });
     }
 
-  
+    
     const [existingRequest] = await db.query(
       `SELECT status FROM admin_approval_requests WHERE id = ?`,
       [id]
@@ -68,24 +77,21 @@ exports.decideApproval = async (req, res) => {
     }
 
     if (existingRequest[0].status !== 'pending') {
-      // 409 Conflict HTTP status code use karein (Best practice for state conflicts)
       return res.status(409).json({
         success: false,
         error: `Request already ${existingRequest[0].status}. Cannot re-process an already decided request.`
       });
     }
-    // ==========================================
 
-    // 2. Abhi status 'pending' hai, toh update karein
+    // Safe update query
     const [result] = await db.query(
       `UPDATE admin_approval_requests 
              SET status = ?, admin_id = ?, admin_notes = ?
-             WHERE id = ? AND status = 'pending'`, // Extra security: DB level pe bhi check
+             WHERE id = ? AND status = 'pending'`,
       [action === 'approve' ? 'approved' : 'rejected', req.user.id, notes, id]
     );
 
     if (result.affectedRows === 0) {
-      // Extra safety check if DB didn't update due to some race condition
       return res.status(409).json({
         success: false,
         error: 'Request status was modified by another admin. Please refresh and try again.'
@@ -94,7 +100,6 @@ exports.decideApproval = async (req, res) => {
 
     // If approved, proceed with order
     if (action === 'approve') {
-      // Process the order with approved discount
       // ... order processing logic
     }
 
