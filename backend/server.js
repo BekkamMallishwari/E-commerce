@@ -60,6 +60,9 @@ const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
+const debtRoutes = require('./routes/debtRoutes');
+const { technicalDebtService } = require('./services/technicalDebtService');
+
 
 const temporalRoutes = require('./routes/temporalRoutes');
 const { temporalDataService } = require('./services/temporalDataService');
@@ -190,6 +193,9 @@ jobQueue.initialize().catch(err => {
 });
 
 
+const processRenewals = require('./jobs/subscriptionRenewalJob');
+setInterval(processRenewals, 24 * 60 * 60 * 1000); // run daily
+
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
 
@@ -219,6 +225,20 @@ await temporalDataService.initialize();
 // Add temporal routes
 app.use('/api/temporal', temporalRoutes);
 // Add with other route imports
+// Add with other imports
+const provenanceRoutes = require('./routes/provenanceRoutes');
+const { provenanceService } = require('./services/provenanceService');
+const { provenanceMiddleware } = require('./middleware/provenanceMiddleware');
+
+
+// Initialize provenance service
+await provenanceService.initialize();
+
+// Add provenance middleware
+app.use(provenanceMiddleware);
+
+// Add provenance routes
+app.use('/api/provenance', provenanceRoutes);
 
 
 
@@ -292,6 +312,7 @@ initializeContainer();
 // Add recently viewed routes
 app.use('/api/recently-viewed', recentlyViewedRoutes);
 // Add with other route imports
+
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
 // Add with other imports
