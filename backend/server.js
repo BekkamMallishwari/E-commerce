@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const temporalRoutes = require('./routes/temporalRoutes');
+const { temporalDataService } = require('./services/temporalDataService');
 
+// Initialize temporal data service
+await temporalDataService.initialize();
+
+// Add temporal routes
+app.use('/api/temporal', temporalRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
