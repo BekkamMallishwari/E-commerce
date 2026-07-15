@@ -60,6 +60,136 @@ const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
 
+const fitnessRoutes = require('./routes/fitnessRoutes');
+const { architecturalFitnessService } = require('./services/architecturalFitnessService');
+
+
+const healthRoutes = require('./routes/healthRoutes');
+const { healthScoreService } = require('./services/healthScoreService');
+const discoveryRoutes = require('./routes/discoveryRoutes');
+const { capabilityDiscoveryService } = require('./services/capabilityDiscoveryService');
+
+
+// Initialize capability discovery
+await capabilityDiscoveryService.initialize();
+
+// Add discovery routes
+app.use('/api/discovery', discoveryRoutes);
+
+const metricsRoutes = require('./routes/metricsRoutes');
+const { metricsAggregationService } = require('./services/metricsAggregationService');
+
+// Initialize metrics service
+await metricsAggregationService.initialize();
+
+// Add metrics routes
+app.use('/api/metrics', metricsRoutes);
+
+
+const notificationBrokerRoutes = require('./routes/notificationBrokerRoutes');
+const { 
+    notificationBroker, 
+    inAppChannel, 
+    emailChannel, 
+    webhookChannel 
+} = require('./services/notificationBrokerService');
+
+// Register channels
+notificationBroker.registerChannel('in_app', inAppChannel.handler);
+notificationBroker.registerChannel('email', emailChannel.handler);
+notificationBroker.registerChannel('webhook', webhookChannel.handler);
+
+// Initialize notification broker
+await notificationBroker.initialize();
+
+
+// Add notification routes
+app.use('/api/notifications', notificationBrokerRoutes);
+
+// Add config routes
+app.use('/api/config', configRoutes);
+
+// Add with other imports
+const { evaluateRisk } = require('./middleware/riskMiddleware');
+
+
+// Add risk evaluation middleware after authentication
+app.use(evaluateRisk);
+
+const tracingRoutes = require('./routes/tracingRoutes');
+const { traceRequest } = require('./middleware/tracingMiddleware');
+const { tracingService } = require('./services/tracingService');
+
+
+// Initialize tracing service
+await tracingService.initialize();
+
+// Add tracing middleware BEFORE any routes
+app.use(traceRequest);
+
+// Add tracing routes
+app.use('/api/tracing', tracingRoutes);
+
+// Add shutdown handler for tracing
+process.on('SIGTERM', async () => {
+    await tracingService.shutdown();
+});
+
+process.on('SIGINT', async () => {
+    await tracingService.shutdown();
+});
+
+
+const policyRoutes = require('./routes/policyRoutes');
+const { policyEngine } = require('./services/policyEngineService');
+
+
+// Initialize policy engine
+await policyEngine.initialize();
+
+// Add policy routes
+app.use('/api/policies', policyRoutes);
+
+
+// Add with other imports
+const outboxRoutes = require('./routes/outboxRoutes');
+const { outboxService } = require('./services/outboxService');
+
+
+// Initialize outbox service
+outboxService.initialize().catch(err => console.error('Outbox initialization failed:', err));
+
+// Add outbox routes
+app.use('/api/outbox', outboxRoutes);
+
+
+// Add with other route imports
+const cqrsRoutes = require('./routes/cqrsRoutes');
+const { readModelSynchronizer } = require('./services/cqrsService');
+
+// Start read model synchronization
+readModelSynchronizer.start();
+
+
+// Add CQRS routes
+app.use('/api/cqrs', cqrsRoutes);
+// Add with other imports
+
+
+const jobRoutes = require('./routes/jobRoutes');
+const { jobQueue, jobHandlers, JOB_TYPES } = require('./services/jobQueueService');
+
+// Register job handlers
+for (const [type, handler] of Object.entries(jobHandlers)) {
+    jobQueue.registerHandler(type, handler);
+}
+
+// Initialize job queue
+await jobQueue.initialize();
+
+// Add job routes
+app.use('/api/jobs', jobRoutes);
+
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
 
@@ -139,6 +269,13 @@ app.use('/api/ai/financial', aiFinancialRoutes);
 app.use('/api/performance', performanceRoutes);
 
 
+
+
+// Initialize fitness service
+await architecturalFitnessService.initialize();
+
+// Add fitness routes
+app.use('/api/fitness', fitnessRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
