@@ -1050,38 +1050,21 @@ INSERT INTO serviceable_pincodes (pincode, city, state, eta_days, cod_available)
 ON DUPLICATE KEY UPDATE eta_days = VALUES(eta_days);
 
 -- ============================================
--- SUBSCRIPTION MANAGEMENT (New)
+-- INVENTORY LOCKS (New)
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS billing_plans (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2) NOT NULL,
-    interval ENUM('daily', 'weekly', 'monthly', 'yearly') NOT NULL,
-    interval_count INT DEFAULT 1,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS subscriptions (
+CREATE TABLE IF NOT EXISTS inventory_locks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    plan_id INT NOT NULL,
-    status ENUM('active', 'past_due', 'canceled', 'paused') DEFAULT 'active',
-    current_period_start DATETIME NOT NULL,
-    current_period_end DATETIME NOT NULL,
-    cancel_at_period_end TINYINT(1) DEFAULT 0,
-    canceled_at DATETIME,
-    dunning_retry_count INT DEFAULT 0,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    expires_at DATETIME NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (plan_id) REFERENCES billing_plans(id) ON DELETE RESTRICT,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     
-    INDEX idx_subscriptions_user (user_id),
-    INDEX idx_subscriptions_status (status),
-    INDEX idx_subscriptions_end (current_period_end)
+    INDEX idx_inventory_locks_user (user_id),
+    INDEX idx_inventory_locks_product (product_id),
+    INDEX idx_inventory_locks_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
