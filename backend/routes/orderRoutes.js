@@ -337,6 +337,44 @@ router.patch("/:id/cancel", authMiddleware, (req, res, next) => {
 
 // ==================== ADMIN ENDPOINTS ====================
 
+// Export orders as CSV
+router.get("/export/csv", authMiddleware, authorizeRoles("admin", "support"), (req, res, next) => {
+    const errors = [];
+
+    // Validate status filter
+    if (req.query.status) {
+        const statusValidation = validateStatus(req.query.status);
+        if (!statusValidation.valid) {
+            errors.push(...statusValidation.errors);
+        }
+    }
+
+    // Validate date filters
+    if (req.query.date_from) {
+        const dateValidation = validateDate(req.query.date_from);
+        if (!dateValidation.valid) {
+            errors.push(dateValidation.error);
+        }
+    }
+
+    if (req.query.date_to) {
+        const dateValidation = validateDate(req.query.date_to);
+        if (!dateValidation.valid) {
+            errors.push(dateValidation.error);
+        }
+    }
+
+    if (errors.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: errors
+        });
+    }
+
+    next();
+}, orderController.exportOrdersCSV);
+
 // Get all orders with filters
 router.get("/", authMiddleware, authorizeRoles("admin", "support"), (req, res, next) => {
     const errors = [];

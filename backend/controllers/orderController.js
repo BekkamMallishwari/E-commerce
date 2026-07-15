@@ -1,5 +1,6 @@
 const db =
     require("../config/db");
+const { Parser } = require("json2csv");
 
 const {
     createOrderService,
@@ -480,6 +481,68 @@ const getOrderSummary = async (req, res) => {
     }
 };
 
+const exportOrdersCSV = async (req, res) => {
+    try {
+        const { status, date_from, date_to } = req.query;
+        let query = `
+            SELECT
+                id AS 'Order ID',
+                customer_name AS 'Customer Name',
+                customer_email AS 'Customer Email',
+                status AS 'Order Status',
+                payment_method AS 'Payment Method',
+                total AS 'Total Amount',
+                created_at AS 'Order Creation Date'
+            FROM orders
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (status) {
+            query += ` AND status = ?`;
+            params.push(status);
+        }
+
+        if (date_from) {
+            query += ` AND created_at >= ?`;
+            params.push(date_from);
+        }
+
+        if (date_to) {
+            // Include the entire end day
+            query += ` AND created_at <= ?`;
+            params.push(`${date_to} 23:59:59`);
+        }
+
+        query += ` ORDER BY id DESC`;
+
+        const [results] = await db.query(query, params);
+
+        if (!safeArray(results).length) {
+            // Handle empty results gracefully
+            const emptyFields = ['Order ID', 'Customer Name', 'Customer Email', 'Order Status', 'Payment Method', 'Total Amount', 'Order Creation Date'];
+            const json2csvParser = new Parser({ fields: emptyFields });
+            const csv = json2csvParser.parse([]);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=orders_export_${timestamp}.csv`);
+            return res.status(200).send(csv);
+        }
+
+        const json2csvParser = new Parser();
+        const csv = json2csvParser.parse(results);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=orders_export_${timestamp}.csv`);
+        return res.status(200).send(csv);
+
+    } catch (error) {
+        console.error("EXPORT ORDERS ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error during export" });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -488,5 +551,6 @@ module.exports = {
     updateOrderStatus,
     cancelUserOrder,
     validateOrder,
-    getOrderSummary
+    getOrderSummary,
+    exportOrdersCSV
 };
