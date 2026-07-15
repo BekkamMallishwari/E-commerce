@@ -20,6 +20,9 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const app = express();
 
 // Add with other imports
+// init app early so route and middleware registration can safely use it
+const app = express();
+
 const responseExampleRoutes = require('./routes/responseExampleRoutes');
 const { standardizeResponse } = require('./middleware/responseStandardizer');
 
@@ -56,6 +59,12 @@ const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
+const adrRoutes = require('./routes/adrRoutes');
+const { adrService } = require('./services/adrService');
+
+const versionRoutes = require('./routes/versionRoutes');
+const { semanticVersionService } = require('./services/semanticVersionService');
+
 
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
