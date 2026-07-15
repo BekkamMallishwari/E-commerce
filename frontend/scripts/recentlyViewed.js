@@ -215,12 +215,18 @@ const renderProducts = (container, products, limit = RECENTLY_VIEWED_CONFIG.disp
 // EMPTY STATE HELPER
 const renderEmptyState = (container, message) => {
     if (container) {
+        container.style.justifyContent = 'center';
+        const wrapper = container.closest('.carousel-wrapper');
+        if (wrapper) {
+            const btns = wrapper.querySelectorAll('.carousel-btn');
+            btns.forEach(btn => btn.style.display = 'none');
+        }
         container.innerHTML = `
-            <div class="empty-state-card recent-empty">
-                <div class="empty-icon">👁</div>
+            <div class="empty-state-card recent-empty" style="flex: 1; margin: 0 auto; width: 100%; max-width: 400px; text-align: center; padding: 40px 20px;">
+                <div class="empty-icon" style="font-size: 3rem; margin-bottom: 15px; color: #ccc;">👁</div>
                 <h3>No Recently Viewed Products</h3>
-                <p>${message}</p>
-                <a href="shop.html" class="empty-state-btn">
+                <p style="margin-bottom: 20px; color: #777;">${message}</p>
+                <a href="shop.html" class="primary" style="display: inline-block; padding: 12px 24px; background: var(--primary-color); color: white; border-radius: 4px; text-decoration: none; font-weight: 600;">
                     Start Shopping
 
                 </a>
