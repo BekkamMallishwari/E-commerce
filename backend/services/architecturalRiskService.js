@@ -278,12 +278,15 @@ class ArchitecturalRiskService extends EventEmitter {
                 if (deps.some(d => d.includes(moduleName))) {
                     incoming++;
                 }
-                
-                // Check if target module depends on this module
-                if (modulePath === mod) {
-                    outgoing += deps.length;
-                }
             }
+        }
+        
+        // Calculate outgoing separately
+        const targetFiles = this.findFilesInModule(modulePath);
+        for (const file of targetFiles) {
+            const content = fs.readFileSync(file, 'utf8');
+            const deps = this.extractDependencies(content);
+            outgoing += deps.length;
         }
 
         return {
