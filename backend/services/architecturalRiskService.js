@@ -313,10 +313,10 @@ class ArchitecturalRiskService extends EventEmitter {
                 
                 // Check if files share similar keywords or functions
                 const words1 = content1.match(/\b\w+\b/g) || [];
-                const words2 = content2.match(/\b\w+\b/g) || [];
+                const words2Set = new Set(content2.match(/\b\w+\b/g) || []);
                 
-                const commonWords = words1.filter(w => words2.includes(w));
-                const similarity = commonWords.length / Math.max(words1.length, words2.length);
+                const commonWords = words1.filter(w => words2Set.has(w));
+                const similarity = commonWords.length / Math.max(words1.length, words2Set.size);
                 
                 if (similarity > 0.3) {
                     relatedPairs++;
