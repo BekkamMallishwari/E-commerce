@@ -63,6 +63,10 @@ const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 const slaRoutes = require('./routes/slaRoutes');
 const { slaService } = require('./services/businessSLAService');
 
+const impactRoutes = require('./routes/impactRoutes');
+const { impactAnalysisService } = require('./services/impactAnalysisService');
+
+
 const discoveryRoutes = require('./routes/discoveryRoutes');
 const { capabilityDiscoveryService } = require('./services/capabilityDiscoveryService');
 
@@ -214,11 +218,18 @@ app.use('/api/correlation', correlationRoutes);
 
 
 
+// Initialize impact analysis service
+await impactAnalysisService.initialize();
+
+// Add impact routes
+app.use('/api/impact', impactRoutes);
+
 // Initialize SLA service
 await slaService.initialize();
 
 // Add SLA routes
 app.use('/api/sla', slaRoutes);
+
 // Add with other route imports
 // Add with other imports
 const provenanceRoutes = require('./routes/provenanceRoutes');
