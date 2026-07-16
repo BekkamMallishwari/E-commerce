@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const agentCheckoutRoutes = require('./routes/agentCheckoutRoutes');
+const { agentCheckoutService } = require('./services/agentCheckoutService');
 
+// Initialize checkout service
+await agentCheckoutService.initialize();
+
+// Add checkout routes
+app.use('/api/agent-checkout', agentCheckoutRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
