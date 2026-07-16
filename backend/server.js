@@ -16,7 +16,15 @@ const corsMiddleware = require("./middleware/corsMiddleware");
 const routes = require("./routes/index");
 const authLimiter = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
+// Add with other imports
+const hallucinationRoutes = require('./routes/hallucinationRoutes');
+const { hallucinationDetectionService } = require('./services/hallucinationDetectionService');
 
+// Initialize hallucination detection service
+await hallucinationDetectionService.initialize();
+
+// Add hallucination routes
+app.use('/api/hallucination', hallucinationRoutes);
 // Add with other route imports
 
 const copywriterRoutes = require('./routes/copywriterRoutes');
