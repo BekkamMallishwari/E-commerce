@@ -4,24 +4,55 @@ const db = require("../config/db");
 const {
     safeNumber,
     safeInteger,
+    safeUUID,
     sanitizeString,
-    getPagination,
     buildPaginationMeta,
     safeArray
 } = require("../utils/helpers");
 
+const MAX_PRODUCT_LIMIT = 50;
+const NORMALIZED_CATEGORY_SQL =
+    "LOWER(REPLACE(REPLACE(category, '-', ''), ' ', ''))";
+const TOYS_CATEGORY_VALUES = [
+    "Toys",
+    "Educational Toys",
+    "Building Blocks",
+    "Dolls",
+    "RC Toys",
+    "Outdoor Toys"
+];
+const STATIONERY_CATEGORY_VALUES = [
+    "Stationery",
+    "Notebooks",
+    "Pens",
+    "Pencils",
+    "School Bags",
+    "Office Supplies",
+    "Art Supplies"
+];
+
+function parsePaginationValue(value, defaultValue, fieldName) {
+    if (value === undefined || value === null || value === "") {
+        return defaultValue;
+    }
+
+    const normalizedValue = String(value).trim();
+    const parsedValue = Number(normalizedValue);
+
+    if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+        throw new Error(`Invalid ${fieldName}`);
+    }
+
+    return parsedValue;
+}
+
 // ---------- Get all products ----------
 const getProducts = async (req, res) => {
     try {
-        const {
-            page,
-            limit,
-            offset
-        } = getPagination(
-            req.query.page,
-            req.query.limit,
-            50
-        );
+        const page = parsePaginationValue(req.query.page, 1, "page");
+        const requestedLimit = parsePaginationValue(req.query.limit, 10, "limit");
+        const limit = Math.min(requestedLimit, MAX_PRODUCT_LIMIT);
+        const offset = (page - 1) * limit;
 
         const search =
             req.query.search
@@ -39,14 +70,35 @@ const getProducts = async (req, res) => {
 
         // category filter (case/format-insensitive)
         if (req.query.category) {
-            conditions.push(
-                "LOWER(REPLACE(REPLACE(category, '-', ''), ' ', '')) = LOWER(REPLACE(REPLACE(?, '-', ''), ' ', ''))"
+            const sanitizedCategory = sanitizeString(
+                req.query.category
             );
-            params.push(
-                sanitizeString(
-                    req.query.category
-                )
-            );
+            const isToysCategory =
+                sanitizedCategory
+                    .toLowerCase()
+                    .replace(/[-\s]+/g, "") === "toys";
+            const isStationeryCategory =
+                sanitizedCategory
+                    .toLowerCase()
+                    .replace(/[-\s]+/g, "") === "stationery";
+
+            if (isToysCategory || isStationeryCategory) {
+                const categoryValues = isToysCategory
+                    ? TOYS_CATEGORY_VALUES
+                    : STATIONERY_CATEGORY_VALUES;
+
+                conditions.push(
+                    `${NORMALIZED_CATEGORY_SQL} IN (${categoryValues.map(
+                        () => "LOWER(REPLACE(REPLACE(?, '-', ''), ' ', ''))"
+                    ).join(", ")})`
+                );
+                params.push(...categoryValues);
+            } else {
+                conditions.push(
+                    `${NORMALIZED_CATEGORY_SQL} = LOWER(REPLACE(REPLACE(?, '-', ''), ' ', ''))`
+                );
+                params.push(sanitizedCategory);
+            }
         }
 
         // featured filter
@@ -149,6 +201,13 @@ const getProducts = async (req, res) => {
             });
 
     } catch (error) {
+        if (error.message === "Invalid page" || error.message === "Invalid limit") {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         console.error(
             "GET PRODUCTS ERROR:"
         );
@@ -173,7 +232,7 @@ const getProducts = async (req, res) => {
 // ---------- Get single product ----------
 const getSingleProduct = async (req, res) => {
     const id =
-        safeInteger(
+        safeUUID(
             req.params.id
         );
 
@@ -320,7 +379,7 @@ const createProduct = async (req, res) => {
 // ---------- Update product ----------
 const updateProduct = async (req, res) => {
     const id =
-        safeInteger(
+        safeUUID(
             req.params.id
         );
 
@@ -419,7 +478,7 @@ const updateProduct = async (req, res) => {
 // Delete product
 const deleteProduct = async (req, res) => {
     const id =
-        safeInteger(
+        safeUUID(
             req.params.id
         );
 
@@ -464,7 +523,9 @@ const getProductSuggestions = async (req, res) => {
     if (!keyword || keyword.trim() === '') {
         return res.json([]);
     }
-    const searchTerm = `%${keyword}%`;
+    // Sanitize: trim, limit length, escape special LIKE characters
+    const sanitized = keyword.trim().slice(0, 100).replace(/[%_\\]/g, String.raw`\$&`);
+    const searchTerm = `%${sanitized}%`;
     const query = `SELECT id, name FROM products WHERE name LIKE ? LIMIT 10`;
     try {
         const [results] = await db.query(query, [searchTerm]);
