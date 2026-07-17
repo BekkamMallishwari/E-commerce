@@ -16,19 +16,14 @@ const { apiLimiter, adminLimiter, mcpLimiter } = require('./config/rateLimiters'
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/corsMiddleware");
+const { healthScoreService } = require('./services/healthScoreService');
+const { capabilityMappingService } = require('./services/capabilityMappingService');
 
-// init app early so route and middleware registration can safely use it
-const app = express();
-
-// Add with other imports
 // init app early so route and middleware registration can safely use it
 const app = express();
 
 const responseExampleRoutes = require('./routes/responseExampleRoutes');
 const { standardizeResponse } = require('./middleware/responseStandardizer');
-
-// init app early so route and middleware registration can safely use it
-const app = express();
 
 // Add response standardization middleware BEFORE routes
 app.use(standardizeResponse);
@@ -87,11 +82,11 @@ app.use('/api/metrics', metricsRoutes);
 
 
 const notificationBrokerRoutes = require('./routes/notificationBrokerRoutes');
-const { 
-    notificationBroker, 
-    inAppChannel, 
-    emailChannel, 
-    webhookChannel 
+const {
+    notificationBroker,
+    inAppChannel,
+    emailChannel,
+    webhookChannel
 } = require('./services/notificationBrokerService');
 
 // Register channels
@@ -215,7 +210,9 @@ app.use('/api/correlation', correlationRoutes);
 
 
 // Initialize SLA service
-await slaService.initialize();
+slaService.initialize().catch(err => {
+    console.error('Failed to initialize SLA service:', err);
+});
 
 // Add SLA routes
 app.use('/api/sla', slaRoutes);
@@ -227,7 +224,9 @@ const { provenanceMiddleware } = require('./middleware/provenanceMiddleware');
 
 
 // Initialize provenance service
-await provenanceService.initialize();
+provenanceService.initialize().catch(err => {
+    console.error('Failed to initialize provenance service:', err);
+});
 
 // Add provenance middleware
 app.use(provenanceMiddleware);
@@ -295,7 +294,9 @@ app.use('/api/performance', performanceRoutes);
 
 
 // Initialize capability mapping
-await capabilityMappingService.initialize();
+capabilityMappingService.initialize().catch(err => {
+    console.error('Failed to initialize capability mapping service:', err);
+});
 
 
 
@@ -401,8 +402,8 @@ app.use(timeout("30s"));
 
 // extend timeout for specific routes
 app.use((req, res, next) => {
-    if (req.path.startsWith("/api/admin") || 
-        req.path === "/api/upload" || 
+    if (req.path.startsWith("/api/admin") ||
+        req.path === "/api/upload" ||
         req.path === "/api/export" ||
         req.path.startsWith("/api/mcp")) { // ✅ MCP timeout extended
         req.setTimeout(60000);
