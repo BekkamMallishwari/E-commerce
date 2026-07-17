@@ -63,11 +63,191 @@ const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 const agentCheckoutRoutes = require('./routes/agentCheckoutRoutes');
 const { agentCheckoutService } = require('./services/agentCheckoutService');
 
-// Initialize checkout service
-await agentCheckoutService.initialize();
+const jaggedFrontierRoutes = require('./routes/jaggedFrontierRoutes');
+const { jaggedFrontierService } = require('./services/jaggedFrontierService');
 
-// Add checkout routes
-app.use('/api/agent-checkout', agentCheckoutRoutes);
+
+const liabilityRoutes = require('./routes/liabilityRoutes');
+const maturityRoutes = require('./routes/maturityRoutes');
+const { moduleMaturityService } = require('./services/moduleMaturityService');
+
+
+const slaRoutes = require('./routes/slaRoutes');
+const { slaService } = require('./services/businessSLAService');
+
+
+const discoveryRoutes = require('./routes/discoveryRoutes');
+const { capabilityDiscoveryService } = require('./services/capabilityDiscoveryService');
+
+// Initialize health score service asynchronously
+healthScoreService.initialize().catch(err => {
+    console.error('Failed to initialize health score service:', err);
+});
+
+// Add discovery routes
+app.use('/api/discovery', discoveryRoutes);
+
+const metricsRoutes = require('./routes/metricsRoutes');
+const { metricsAggregationService } = require('./services/metricsAggregationService');
+
+// Initialize metrics service asynchronously
+metricsAggregationService.initialize().catch(err => {
+    console.error('Failed to initialize metrics aggregation service:', err);
+});
+
+// Add metrics routes
+app.use('/api/metrics', metricsRoutes);
+
+
+const notificationBrokerRoutes = require('./routes/notificationBrokerRoutes');
+const { 
+    notificationBroker, 
+    inAppChannel, 
+    emailChannel, 
+    webhookChannel 
+} = require('./services/notificationBrokerService');
+
+// Register channels
+notificationBroker.registerChannel('in_app', inAppChannel.handler);
+notificationBroker.registerChannel('email', emailChannel.handler);
+notificationBroker.registerChannel('webhook', webhookChannel.handler);
+
+// Initialize notification broker asynchronously
+notificationBroker.initialize().catch(err => {
+    console.error('Failed to initialize notification broker:', err);
+});
+
+
+// Add notification routes
+app.use('/api/notifications', notificationBrokerRoutes);
+
+// Add config routes
+app.use('/api/config', configRoutes);
+
+// Add with other imports
+const { evaluateRisk } = require('./middleware/riskMiddleware');
+
+
+// Add risk evaluation middleware after authentication
+app.use(evaluateRisk);
+
+const tracingRoutes = require('./routes/tracingRoutes');
+const { traceRequest } = require('./middleware/tracingMiddleware');
+const { tracingService } = require('./services/tracingService');
+
+
+// Initialize tracing service asynchronously
+tracingService.initialize().catch(err => {
+    console.error('Failed to initialize tracing service:', err);
+});
+
+// Add tracing middleware BEFORE any routes
+app.use(traceRequest);
+
+// Add tracing routes
+app.use('/api/tracing', tracingRoutes);
+
+// Add shutdown handler for tracing
+process.on('SIGTERM', async () => {
+    await tracingService.shutdown();
+});
+
+process.on('SIGINT', async () => {
+    await tracingService.shutdown();
+});
+
+
+const policyRoutes = require('./routes/policyRoutes');
+const { policyEngine } = require('./services/policyEngineService');
+
+
+// Initialize policy engine asynchronously
+policyEngine.initialize().catch(err => {
+    console.error('Failed to initialize policy engine:', err);
+});
+
+// Add policy routes
+app.use('/api/policies', policyRoutes);
+
+
+// Add with other imports
+const outboxRoutes = require('./routes/outboxRoutes');
+const { outboxService } = require('./services/outboxService');
+
+
+// Initialize outbox service asynchronously
+outboxService.initialize().catch(err => {
+    console.error('Failed to initialize outbox service:', err);
+});
+
+// Add outbox routes
+app.use('/api/outbox', outboxRoutes);
+
+
+
+// Add liability routes
+app.use('/api/liability', liabilityRoutes);
+// Add with other route imports
+const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
+
+// Add with other imports
+const complexityRoutes = require('./routes/complexityRoutes');
+const { architectureComplexityService } = require('./services/architectureComplexityService');
+
+
+
+
+
+// Initialize job queue asynchronously
+jobQueue.initialize().catch(err => {
+    console.error('Failed to initialize job queue:', err);
+});
+
+
+const processRenewals = require('./jobs/subscriptionRenewalJob');
+setInterval(processRenewals, 24 * 60 * 60 * 1000); // run daily
+
+const flagRoutes = require('./routes/flagRoutes');
+const { featureFlagService } = require('./services/featureFlagService');
+
+// Initialize feature flag service asynchronously
+featureFlagService.initialize().catch(err => {
+    console.error('Failed to initialize feature flag service:', err);
+});
+
+// Add flag routes
+app.use('/api/flags', flagRoutes);
+
+const correlationRoutes = require('./routes/correlationRoutes');
+const { correlationIdMiddleware, logCompletionMiddleware } = require('./middleware/correlationIdMiddleware');
+
+// Add correlation ID middleware BEFORE any other middleware
+app.use(correlationIdMiddleware);
+app.use(logCompletionMiddleware);
+
+// Add correlation routes
+app.use('/api/correlation', correlationRoutes);
+
+
+
+// Initialize maturity service
+await moduleMaturityService.initialize();
+
+// Add maturity routes
+app.use('/api/maturity', maturityRoutes);
+
+// Initialize SLA service
+await slaService.initialize();
+
+// Add SLA routes
+app.use('/api/sla', slaRoutes);
+
+
+// Initialize service
+await jaggedFrontierService.initialize();
+
+// Add routes
+app.use('/api/jagged-frontier', jaggedFrontierRoutes);
 // Add with other route imports
 // Add with other imports
 const provenanceRoutes = require('./routes/provenanceRoutes');
