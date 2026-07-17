@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('customer', 'support', 'admin', 'seller') DEFAULT 'customer',
+    `role` ENUM('customer', 'support', 'admin', 'seller') DEFAULT 'customer',
     refresh_token VARCHAR(255),
     avatar VARCHAR(500),
     phone VARCHAR(20),
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_users_email (email),
-    INDEX idx_users_role (role),
+    INDEX idx_users_role (`role`),
     INDEX idx_users_is_active (is_active),
     INDEX idx_users_deleted_at (deleted_at),
     INDEX idx_users_last_login (last_login),
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_featured_status (featured, status),
     
     -- Partial index for active products
-    INDEX idx_active_products (status, price) WHERE status = 'active' AND deleted_at IS NULL,
+    INDEX idx_active_products (status, price, deleted_at),
     
     -- Full-text search indexes
     FULLTEXT INDEX ft_product_search (name, description, short_description, meta_keywords),
@@ -252,12 +252,12 @@ CREATE TABLE IF NOT EXISTS orders (
     INDEX idx_user_status (user_id, status),
     INDEX idx_payment_status_created (payment_status, created_at),
     INDEX idx_status_updated (status, updated_at),
-    INDEX idx_shipping_date (shipping_date) WHERE status = 'shipped',
+    INDEX idx_shipping_date (status, shipping_date),
     
     -- JSON indexes for shipping address
-    INDEX idx_shipping_city ((shipping_address->>'$.city')),
-    INDEX idx_shipping_state ((shipping_address->>'$.state')),
-    INDEX idx_shipping_country ((shipping_address->>'$.country'))
+    INDEX idx_shipping_city ((CAST(shipping_address->>'$.city' AS CHAR(100)))),
+    INDEX idx_shipping_state ((CAST(shipping_address->>'$.state' AS CHAR(100)))),
+    INDEX idx_shipping_country ((CAST(shipping_address->>'$.country' AS CHAR(100))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -281,9 +281,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     total DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_price CHECK (price >= 0),
+    CONSTRAINT chk_order_items_price CHECK (price >= 0),
     CONSTRAINT chk_qty CHECK (qty > 0),
-    CONSTRAINT chk_total CHECK (total >= 0),
+    CONSTRAINT chk_order_items_total CHECK (total >= 0),
     
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
@@ -355,7 +355,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
     type ENUM('percentage', 'fixed', 'free_shipping') NOT NULL,
-    value DECIMAL(10,2) NOT NULL,
+    `value` DECIMAL(10,2) NOT NULL,
     minimum_order_amount DECIMAL(10,2),
     maximum_discount_amount DECIMAL(10,2),
     usage_limit INT,
@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_value CHECK (value >= 0),
+    CONSTRAINT chk_value CHECK (`value` >= 0),
     CONSTRAINT chk_min_order CHECK (minimum_order_amount >= 0 OR minimum_order_amount IS NULL),
     CONSTRAINT chk_max_discount CHECK (maximum_discount_amount >= 0 OR maximum_discount_amount IS NULL),
     CONSTRAINT chk_usage_limit CHECK (usage_limit >= 0 OR usage_limit IS NULL),
@@ -459,12 +459,12 @@ CREATE TABLE IF NOT EXISTS shipment_tracking (
     carrier_status_code VARCHAR(50),
     estimated_delivery DATE,
     is_delivered TINYINT(1) DEFAULT 0,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE,
     
     INDEX idx_shipment_tracking_shipment (shipment_id),
-    INDEX idx_shipment_tracking_timestamp (timestamp),
+    INDEX idx_shipment_tracking_timestamp (`timestamp`),
     INDEX idx_shipment_tracking_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -701,7 +701,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_rating CHECK (rating >= 1 AND rating <= 5),
+    CONSTRAINT chk_reviews_rating CHECK (rating >= 1 AND rating <= 5),
     CONSTRAINT chk_helpful_count CHECK (helpful_count >= 0),
     CONSTRAINT chk_reported_count CHECK (reported_count >= 0),
     
@@ -1055,8 +1055,8 @@ ON DUPLICATE KEY UPDATE eta_days = VALUES(eta_days);
 
 CREATE TABLE IF NOT EXISTS inventory_locks (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    product_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
+    product_id CHAR(36) NOT NULL,
     quantity INT NOT NULL,
     expires_at DATETIME NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

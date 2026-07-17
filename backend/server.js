@@ -249,6 +249,12 @@ await slaService.initialize();
 // Add SLA routes
 app.use('/api/sla', slaRoutes);
 
+
+// Add crawler protection middleware AFTER rate limiting but BEFORE routes
+app.use(protectAgainstCrawlers);
+
+// Add crawler routes
+app.use('/api/crawler', crawlerRoutes);
 // Add with other route imports
 // Add with other imports
 const provenanceRoutes = require('./routes/provenanceRoutes');

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const { architecturalRiskService } = require('../services/architecturalRiskService');
+const nodePath = require('path');
 
 /**
  * POST /api/risk/analyze
@@ -95,9 +96,9 @@ router.get('/modules/:name', authMiddleware, async (req, res) => {
         const { name } = req.params;
         let moduleData = null;
 
-        for (const [path, data] of architecturalRiskService.moduleScores) {
-            if (path.basename(path) === name) {
-                moduleData = { path, ...data };
+        for (const [modulePath, data] of architecturalRiskService.moduleScores) {
+            if (nodePath.basename(modulePath) === name) {
+                moduleData = { path: modulePath, ...data };
                 break;
             }
         }
