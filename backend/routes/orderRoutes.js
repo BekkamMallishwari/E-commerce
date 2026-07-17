@@ -245,6 +245,9 @@ router.post("/validate", orderController.validateOrder);
 
 // ==================== USER ENDPOINTS ====================
 
+// Create payment intent
+router.post("/create-payment-intent", authMiddleware, orderController.createPaymentIntent);
+
 // Create order
 router.post("/", authMiddleware, (req, res, next) => {
     const { items, total, paymentMethod } = req.body;
