@@ -60,9 +60,8 @@ const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
-const puppeteerRoutes = require('./routes/puppeteerRoutes');
-const { pool } = require('./services/puppeteerPoolService');
-
+const protocolRoutes = require('./routes/protocolRoutes');
+const { agentProtocolService } = require('./services/agentProtocolService');
 const maturityRoutes = require('./routes/maturityRoutes');
 const { moduleMaturityService } = require('./services/moduleMaturityService');
 
@@ -180,20 +179,11 @@ app.use('/api/outbox', outboxRoutes);
 
 
 
-// Initialize Puppeteer pool
-await pool.initialize();
+// Initialize protocol service
+await agentProtocolService.initialize();
 
-// Add puppeteer routes
-app.use('/api/puppeteer', puppeteerRoutes);
-
-// Add graceful shutdown
-process.on('SIGTERM', async () => {
-    await pool.shutdown();
-});
-
-process.on('SIGINT', async () => {
-    await pool.shutdown();
-});
+// Add protocol routes
+app.use('/api/protocol', protocolRoutes);
 // Add with other route imports
 const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
 
