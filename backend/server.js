@@ -1,8 +1,16 @@
+// backend/server.js
+// 1. Initialize environment variables immediately
+const dotenv = require("dotenv");
+dotenv.config();
+
+const { validateEnv } = require('./config/envValidator');
+validateEnv();
+
+// 2. Core Dependencies
 const express = require("express");
 const { helmetMiddleware } = require("./middleware/helmetMiddleware");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
 const globalErrorHandler = require('./middleware/errorHandler');
 const compression = require("compression");
 const morgan = require("morgan");
@@ -13,73 +21,38 @@ const setupProcessEventHandlers = require('./utils/processEventHandlers');
 const setupGracefulShutdown = require('./utils/gracefulShutdown');
 
 const { apiLimiter, adminLimiter, mcpLimiter } = require('./config/rateLimiters');
-const dotenv = require("dotenv");
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/corsMiddleware");
-const { healthScoreService } = require('./services/healthScoreService');
-const { capabilityMappingService } = require('./services/capabilityMappingService');
 
-// init app early so route and middleware registration can safely use it
+// 3. Initialize Express Application
 const app = express();
 
+// 4. Missing / Required Service Imports
+const { healthScoreService } = require('./services/healthScoreService');
+const { capabilityMappingService } = require('./services/capabilityMappingService');
+const { jobQueue } = require('./services/jobQueueService');
+const { initializeContainer } = require('./core/serviceRegistration');
+
+// 5. Route & Middleware Imports
 const responseExampleRoutes = require('./routes/responseExampleRoutes');
 const { standardizeResponse } = require('./middleware/responseStandardizer');
 
-// Add response standardization middleware BEFORE routes
-app.use(standardizeResponse);
-
-// Add response example routes (for testing)
-app.use('/api/response-example', responseExampleRoutes);
-
-
 const logDir = path.join(process.cwd(), "logs");
-// Add with other route imports
 const aiFeedRoutes = require('./routes/aiFeedRoutes');
-// Import agent routes
 const agentRoutes = require('./routes/agentRoutes');
-// Import legal routes
 const legalRoutes = require('./routes/legalRoutes');
-// Add with other route imports
 const aiLegalRoutes = require('./routes/aiLegalRoutes');
-
-// Add AI Legal routes
-app.use('/api/ai-legal', aiLegalRoutes);
-// Add routes
-app.use('/api/legal', legalRoutes);
-// Add routes
-app.use('/api/agents', agentRoutes);
-// Add AI feed routes
-app.use('/api/ai-feed', aiFeedRoutes);
-
 const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
-const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
-// Add with other imports
+const mcpRoutes = require("./routes/mcpRoutes");
 const slaRoutes = require('./routes/slaRoutes');
 const { slaService } = require('./services/businessSLAService');
 
 const discoveryRoutes = require('./routes/discoveryRoutes');
 const { capabilityDiscoveryService } = require('./services/capabilityDiscoveryService');
 
-// Initialize health score service asynchronously
-healthScoreService.initialize().catch(err => {
-    console.error('Failed to initialize health score service:', err);
-});
-
-// Add discovery routes
-app.use('/api/discovery', discoveryRoutes);
-
 const metricsRoutes = require('./routes/metricsRoutes');
 const { metricsAggregationService } = require('./services/metricsAggregationService');
-
-// Initialize metrics service asynchronously
-metricsAggregationService.initialize().catch(err => {
-    console.error('Failed to initialize metrics aggregation service:', err);
-});
-
-// Add metrics routes
-app.use('/api/metrics', metricsRoutes);
-
 
 const notificationBrokerRoutes = require('./routes/notificationBrokerRoutes');
 const {
@@ -89,303 +62,98 @@ const {
     webhookChannel
 } = require('./services/notificationBrokerService');
 
-// Register channels
+// Register notification channels
 notificationBroker.registerChannel('in_app', inAppChannel.handler);
 notificationBroker.registerChannel('email', emailChannel.handler);
 notificationBroker.registerChannel('webhook', webhookChannel.handler);
 
-// Initialize notification broker asynchronously
-notificationBroker.initialize().catch(err => {
-    console.error('Failed to initialize notification broker:', err);
-});
-
-
-// Add notification routes
-app.use('/api/notifications', notificationBrokerRoutes);
-
-// Add config routes
-app.use('/api/config', configRoutes);
-
-// Add with other imports
+const configRoutes = require('./routes/configRoutes');
 const { evaluateRisk } = require('./middleware/riskMiddleware');
-
-
-// Add risk evaluation middleware after authentication
-app.use(evaluateRisk);
-
 const tracingRoutes = require('./routes/tracingRoutes');
 const { traceRequest } = require('./middleware/tracingMiddleware');
 const { tracingService } = require('./services/tracingService');
 
-
-// Initialize tracing service asynchronously
-tracingService.initialize().catch(err => {
-    console.error('Failed to initialize tracing service:', err);
-});
-
-// Add tracing middleware BEFORE any routes
-app.use(traceRequest);
-
-// Add tracing routes
-app.use('/api/tracing', tracingRoutes);
-
-// Add shutdown handler for tracing
-process.on('SIGTERM', async () => {
-    await tracingService.shutdown();
-});
-
-process.on('SIGINT', async () => {
-    await tracingService.shutdown();
-});
-
-
 const policyRoutes = require('./routes/policyRoutes');
 const { policyEngine } = require('./services/policyEngineService');
 
-
-// Initialize policy engine asynchronously
-policyEngine.initialize().catch(err => {
-    console.error('Failed to initialize policy engine:', err);
-});
-
-// Add policy routes
-app.use('/api/policies', policyRoutes);
-
-
-// Add with other imports
 const outboxRoutes = require('./routes/outboxRoutes');
 const { outboxService } = require('./services/outboxService');
 
-
-// Initialize outbox service asynchronously
-outboxService.initialize().catch(err => {
-    console.error('Failed to initialize outbox service:', err);
-});
-
-// Add outbox routes
-app.use('/api/outbox', outboxRoutes);
-
-
-// Add with other route imports
 const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
-
-// Add with other imports
 const complexityRoutes = require('./routes/complexityRoutes');
 const { architectureComplexityService } = require('./services/architectureComplexityService');
 
-
-
-
-
-// Initialize job queue asynchronously
-jobQueue.initialize().catch(err => {
-    console.error('Failed to initialize job queue:', err);
-});
-
-
 const processRenewals = require('./jobs/subscriptionRenewalJob');
-setInterval(processRenewals, 24 * 60 * 60 * 1000); // run daily
-
 const flagRoutes = require('./routes/flagRoutes');
 const { featureFlagService } = require('./services/featureFlagService');
-
-// Initialize feature flag service asynchronously
-featureFlagService.initialize().catch(err => {
-    console.error('Failed to initialize feature flag service:', err);
-});
-
-// Add flag routes
-app.use('/api/flags', flagRoutes);
 
 const correlationRoutes = require('./routes/correlationRoutes');
 const { correlationIdMiddleware, logCompletionMiddleware } = require('./middleware/correlationIdMiddleware');
 
-// Add correlation ID middleware BEFORE any other middleware
-app.use(correlationIdMiddleware);
-app.use(logCompletionMiddleware);
-
-// Add correlation routes
-app.use('/api/correlation', correlationRoutes);
-
-
-
-// Initialize SLA service
-slaService.initialize().catch(err => {
-    console.error('Failed to initialize SLA service:', err);
-});
-
-// Add SLA routes
-app.use('/api/sla', slaRoutes);
-// Add with other route imports
-// Add with other imports
 const provenanceRoutes = require('./routes/provenanceRoutes');
 const { provenanceService } = require('./services/provenanceService');
 const { provenanceMiddleware } = require('./middleware/provenanceMiddleware');
 
-
-// Initialize provenance service
-provenanceService.initialize().catch(err => {
-    console.error('Failed to initialize provenance service:', err);
-});
-
-// Add provenance middleware
-app.use(provenanceMiddleware);
-
-// Add provenance routes
-app.use('/api/provenance', provenanceRoutes);
-
-
-
 const recommendationRoutes = require('./routes/recommendationRoutes');
-
-// Add recommendation routes
-app.use('/api/recommendations', recommendationRoutes);
-
 const ruleRoutes = require('./routes/ruleRoutes');
-
-// Add rule routes
-app.use('/api/rules', ruleRoutes);
-
 
 const pluginRoutes = require('./routes/pluginRoutes');
 const { pluginSystem } = require('./services/pluginSystemService');
 
-// Initialize plugin system asynchronously
-pluginSystem.initialize().catch(err => {
-    console.error('Failed to initialize plugin system:', err);
-});
-
-// Add plugin routes
-app.use('/api/plugins', pluginRoutes);
-
-
 const eventRoutes = require('./routes/eventRoutes');
 const { setupAllSubscribers } = require('./services/eventSubscribers');
 
-// Add event routes
-app.use('/api/events', eventRoutes);
-
-// Setup event subscribers after all services are initialized
-setupAllSubscribers();
-// Add with other route imports
 const performanceRoutes = require('./routes/performanceRoutes');
-
-// Import routes
 const approvalRoutes = require('./routes/approvalRoutes');
 const rollbackRoutes = require('./routes/rollbackRoutes');
-// Import security routes
 const securityRoutes = require('./routes/securityRoutes');
-
-// Add routes
-app.use('/api/security', securityRoutes);
-// Add routes
-app.use('/api/approvals', approvalRoutes);
-app.use('/api/rollback', rollbackRoutes);
-// Add with other route imports
-
 const aiFinancialRoutes = require('./routes/aiFinancialRoutes');
 
-// Add AI financial routes
-app.use('/api/ai/financial', aiFinancialRoutes);
-
-
-// Add performance routes
-app.use('/api/performance', performanceRoutes);
-
-
-// Initialize capability mapping
-capabilityMappingService.initialize().catch(err => {
-    console.error('Failed to initialize capability mapping service:', err);
-});
-
-
-
-// Initialize DI container
-initializeContainer();
-
-
-
-// Add recently viewed routes
-app.use('/api/recently-viewed', recentlyViewedRoutes);
-// Add with other route imports
-
-
-const copywriterRoutes = require('./routes/copywriterRoutes');
-// Add with other imports
-const experimentRoutes = require('./routes/experimentRoutes');
-
-// Add experiment routes
-app.use('/api/experiments', experimentRoutes);
-// Add copywriter routes
-app.use('/api/copywriter', copywriterRoutes);
-// Add with other imports
-
 const { detectAgenticFraud } = require('./middleware/agenticFraudMiddleware');
-
-
 const { detectBot, addBotDetectionHeaders } = require('./middleware/botProtectionMiddleware');
-
-
-// Add after other middleware
-app.use(addBotDetectionHeaders);
-app.use(detectBot);
-
-
 const { verifyAICrawler } = require('./middleware/aiCrawlerMiddleware');
-
-
-
-
-
-
-// Add after other middleware
-app.use(addBotDetectionHeaders);
-app.use(detectBot);
-// Add with other route imports
 const fraudRoutes = require('./routes/fraudRoutes');
-
-// Add fraud routes
-app.use('/api/fraud', fraudRoutes);
-
-
-
-// Add after auth middleware
-app.use(detectAgenticFraud);
 const aiRoutes = require('./routes/aiRoutes');
 
-// Add AI routes
-app.use('/api/ai', aiRoutes);
-
-// load environment
-dotenv.config();
-const { validateEnv } = require('./config/envValidator');
-validateEnv();
-
-// database
+// 6. Connect to database configuration (runs pool initialization side-effects)
 require("./config/db");
 
 const http = require("node:http");
 const server = http.createServer(app);
 const { initSocket } = require("./utils/socketManager");
 const { accessLogger, errorLogger, devLogger } = require('./config/morganConfig');
-// constants
+
 const PORT = Number(process.env.PORT) || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5500";
 
-// create logs directory
+// Create logs directory if it does not exist
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+}
+const errorLogStream = fs.createWriteStream(path.join(logDir, "error.log"), { flags: "a" });
 
-
-
-// trust proxy
+// 7. Express App Configuration & Global Middlewares
 app.set("trust proxy", 1);
-
-// security
 app.disable("x-powered-by");
 
-// security headers
-app.use(helmetMiddleware);
+// Add correlation ID middleware before any other middlewares
+app.use(correlationIdMiddleware);
+app.use(logCompletionMiddleware);
 
-// compression - gzip/brotli
+// Add response standardization middleware before routes
+app.use(standardizeResponse);
+
+// Security, tracing, and logging middlewares
+app.use(helmetMiddleware);
+app.use(traceRequest);
+app.use(accessLogger);
+app.use(errorLogger);
+
+if (process.env.NODE_ENV !== "production") {
+    app.use(devLogger);
+}
+
+// Request Compression
 app.use(compression({
     level: 6,
     threshold: 1024,
@@ -397,22 +165,59 @@ app.use(compression({
     }
 }));
 
-// request timeout
+// Request Timeout
 app.use(timeout("30s"));
-
-// extend timeout for specific routes
 app.use((req, res, next) => {
     if (req.path.startsWith("/api/admin") ||
         req.path === "/api/upload" ||
         req.path === "/api/export" ||
-        req.path.startsWith("/api/mcp")) { // ✅ MCP timeout extended
+        req.path.startsWith("/api/mcp")) {
         req.setTimeout(60000);
     }
     next();
 });
 
-// cors - allowed origins
-const allowedOrigins = [
+// JSON and URL-encoded body parsers
+app.use(express.json({ limit: "10mb" }));
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Security headers for MCP endpoints
+app.use('/api/mcp', (req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    next();
+});
+
+// Request logger for development
+if (process.env.NODE_ENV !== "production") {
+    app.use((req, res, next) => {
+        console.log(`${req.method} ${req.originalUrl} - ${req.ip}`);
+        next();
+    });
+}
+
+// Bot protection and agentic fraud detection middlewares
+app.use(addBotDetectionHeaders);
+app.use(detectBot);
+app.use(evaluateRisk);
+app.use(provenanceMiddleware);
+app.use(detectAgenticFraud);
+
+// 8. Global Rate Limiting
+app.use("/api", apiLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/signup", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
+app.use("/api/auth/refresh-token", authLimiter);
+app.use("/api/admin", adminLimiter);
+app.use("/api/mcp", mcpLimiter);
+
+// Initialize Socket.IO server
+initSocket(server, [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:5501",
@@ -426,85 +231,54 @@ const allowedOrigins = [
     "https://e-commerce-git-main-bhuvanshs-projects.vercel.app",
     "https://www.bhuvansh.xyz",
     "https://e-commerce-production-d546.up.railway.app"
-];
+]);
 
-// initialize websocket server with CORS
-initSocket(server, allowedOrigins);
+// 9. Application Routes Setup
+app.use('/api/response-example', responseExampleRoutes);
+app.use('/api/ai-legal', aiLegalRoutes);
+app.use('/api/legal', legalRoutes);
+app.use('/api/agents', agentRoutes);
+app.use('/api/ai-feed', aiFeedRoutes);
+app.use('/api/discovery', discoveryRoutes);
+app.use('/api/metrics', metricsRoutes);
+app.use('/api/notifications', notificationBrokerRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/tracing', tracingRoutes);
+app.use('/api/policies', policyRoutes);
+app.use('/api/outbox', outboxRoutes);
+app.use('/api/flags', flagRoutes);
+app.use('/api/correlation', correlationRoutes);
+app.use('/api/sla', slaRoutes);
+app.use('/api/provenance', provenanceRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/rules', ruleRoutes);
+app.use('/api/plugins', pluginRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/rollback', rollbackRoutes);
+app.use('/api/ai/financial', aiFinancialRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/recently-viewed', recentlyViewedRoutes);
+app.use('/api/experiments', experimentRoutes);
+app.use('/api/copywriter', copywriterRoutes);
+app.use('/api/fraud', fraudRoutes);
+app.use('/api/ai', aiRoutes);
+app.use("/api", routes);
+app.use("/api/mcp", mcpRoutes);
 
-// cors
-app.use(corsMiddleware);
-app.use(accessLogger);
-
-// log errors to error.log
-app.use(errorLogger);
-
-// console logging in development
-if (process.env.NODE_ENV !== "production") {
-    app.use(devLogger);
-}
-
-// body parsers
-app.use(
-    express.json({
-        limit: "10mb",
-    }),
-);
-
-app.use(cookieParser());
-
-app.use(
-    express.urlencoded({
-        extended: true,
-        limit: "10mb",
-    }),
-);
-
-// Security headers for MCP endpoints
-app.use('/api/mcp', (req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    next();
-});
-
-// request logger
-if (process.env.NODE_ENV !== "production") {
-    app.use((req, res, next) => {
-        console.log(`${req.method} ${req.originalUrl} - ${req.ip}`);
-        next();
-    });
-}
-
-
-// apply rate limiting
-app.use("/api", apiLimiter);
-
-// auth routes rate limiting
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/signup", authLimiter);
-app.use("/api/auth/forgot-password", authLimiter);
-app.use("/api/auth/reset-password", authLimiter);
-app.use("/api/auth/refresh-token", authLimiter);
-
-// admin routes rate limiting
-app.use("/api/admin", adminLimiter);
-
-// ✅ MCP routes rate limiting
-app.use("/api/mcp", mcpLimiter);
-
-// health check
-// health check
+// Health check endpoint
 app.get("/health", (req, res) => {
+    const { buildHealthResponse } = require("./utils/healthBuilder");
     const healthData = buildHealthResponse({
         environment: process.env.NODE_ENV || "development",
         uptime: process.uptime(),
         memoryUsage: process.memoryUsage(),
     });
     return res.status(200).json(healthData);
-});;
+});
 
-// root route
+// Root API Endpoint
 app.get("/", (req, res) => {
     return res.status(200).json({
         success: true,
@@ -515,7 +289,7 @@ app.get("/", (req, res) => {
             api: "/api",
             auth: "/api/auth",
             admin: "/api/admin",
-            mcp: "/api/mcp", // ✅ MCP endpoint added
+            mcp: "/api/mcp",
         },
         security: {
             rateLimiting: "Enabled",
@@ -526,13 +300,7 @@ app.get("/", (req, res) => {
     });
 });
 
-// api routes
-app.use("/api", routes);
-
-// ✅ MCP routes - must be after auth routes but before 404
-app.use("/api/mcp", mcpRoutes);
-
-// 404 handler
+// 404 Route Handler
 app.use((req, res) => {
     return res.status(404).json({
         success: false,
@@ -541,10 +309,10 @@ app.use((req, res) => {
     });
 });
 
-// Register the extracted global error handler
+// Global Error Middleware
 app.use(globalErrorHandler(errorLogStream));
 
-// unhandled rejection
+// 10. Process Signal Event Handlers
 process.on("unhandledRejection", (reason) => {
     console.error("UNHANDLED REJECTION:", reason);
     errorLogStream.write(JSON.stringify({
@@ -558,7 +326,6 @@ process.on("unhandledRejection", (reason) => {
     }, 1000);
 });
 
-// uncaught exception
 process.on("uncaughtException", (error) => {
     console.error("UNCAUGHT EXCEPTION:", error);
     errorLogStream.write(JSON.stringify({
@@ -572,24 +339,89 @@ process.on("uncaughtException", (error) => {
     }, 1000);
 });
 
-// Initialize graceful shutdown logic
+// Set up process signals and graceful shutdown
+setupProcessEventHandlers();
 setupGracefulShutdown(server);
 
-// Graceful shutdown event listeners are already setup inside setupGracefulShutdown
-
-// Start server
-console.log("Reached end of server.js. Starting server on port:", PORT);
-server.listen(PORT, "0.0.0.0", () => {
-    logServerStartup({
-        port: PORT,
-        environment: process.env.NODE_ENV || "development",
-        frontendUrl: FRONTEND_URL,
-        logsDir: logDir,
-        healthUrl: `http://localhost:${PORT}/health`,
-        mcpSecurity: true,
-        rateLimiting: true,
-        helmet: true,
-    });
+// Register tracing shutdown logic on SIGINT/SIGTERM
+process.on('SIGTERM', async () => {
+    try {
+        await tracingService.shutdown();
+    } catch (err) {
+        console.error("Error during tracing shutdown:", err.message);
+    }
 });
+
+process.on('SIGINT', async () => {
+    try {
+        await tracingService.shutdown();
+    } catch (err) {
+        console.error("Error during tracing shutdown:", err.message);
+    }
+});
+
+// Start Subscription Renewals Cron Job
+setInterval(processRenewals, 24 * 60 * 60 * 1000); // run daily
+
+// 11. Application Bootstrap Function
+async function bootstrap() {
+    const { logServerStartup } = require('./config/loggerConfig');
+    console.log("Initializing core background services...");
+
+    const services = [
+        { name: 'HealthScoreService', instance: healthScoreService },
+        { name: 'MetricsAggregationService', instance: metricsAggregationService },
+        { name: 'TracingService', instance: tracingService },
+        { name: 'PolicyEngineService', instance: policyEngine },
+        { name: 'OutboxService', instance: outboxService },
+        { name: 'FeatureFlagService', instance: featureFlagService },
+        { name: 'SLAService', instance: slaService },
+        { name: 'ProvenanceService', instance: provenanceService },
+        { name: 'CapabilityMappingService', instance: capabilityMappingService },
+        { name: 'PluginSystem', instance: pluginSystem },
+        { name: 'JobQueue', instance: jobQueue }
+    ];
+
+    for (const s of services) {
+        try {
+            await s.instance.initialize();
+            console.log(`Service '${s.name}' initialized successfully.`);
+        } catch (err) {
+            console.error(`Warning: Service '${s.name}' failed to initialize:`, err.message);
+        }
+    }
+
+    try {
+        initializeContainer();
+        console.log("DI Container initialized successfully.");
+    } catch (err) {
+        console.error("Warning: DI Container initialization failed:", err.message);
+    }
+
+    try {
+        setupAllSubscribers();
+        console.log("Event subscribers set up successfully.");
+    } catch (err) {
+        console.error("Warning: Failed to setup event subscribers:", err.message);
+    }
+
+    // Start HTTP listening only after services finish initializations
+    console.log("Starting HTTP server...");
+    server.listen(PORT, "0.0.0.0", () => {
+        logServerStartup({
+            port: PORT,
+            environment: process.env.NODE_ENV || "development",
+            frontendUrl: FRONTEND_URL,
+            logsDir: logDir,
+            healthUrl: `http://localhost:${PORT}/health`,
+            mcpSecurity: true,
+            rateLimiting: true,
+            helmet: true,
+        });
+    });
+}
+
+// Start application
+bootstrap();
 
 module.exports = app;
