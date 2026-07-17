@@ -278,12 +278,15 @@ class ArchitecturalRiskService extends EventEmitter {
                 if (deps.some(d => d.includes(moduleName))) {
                     incoming++;
                 }
-                
-                // Check if target module depends on this module
-                if (modulePath === mod) {
-                    outgoing += deps.length;
-                }
             }
+        }
+        
+        // Calculate outgoing separately
+        const targetFiles = this.findFilesInModule(modulePath);
+        for (const file of targetFiles) {
+            const content = fs.readFileSync(file, 'utf8');
+            const deps = this.extractDependencies(content);
+            outgoing += deps.length;
         }
 
         return {
@@ -310,10 +313,10 @@ class ArchitecturalRiskService extends EventEmitter {
                 
                 // Check if files share similar keywords or functions
                 const words1 = content1.match(/\b\w+\b/g) || [];
-                const words2 = content2.match(/\b\w+\b/g) || [];
+                const words2Set = new Set(content2.match(/\b\w+\b/g) || []);
                 
-                const commonWords = words1.filter(w => words2.includes(w));
-                const similarity = commonWords.length / Math.max(words1.length, words2.length);
+                const commonWords = words1.filter(w => words2Set.has(w));
+                const similarity = commonWords.length / Math.max(words1.length, words2Set.size);
                 
                 if (similarity > 0.3) {
                     relatedPairs++;

@@ -4,30 +4,184 @@
 
 ---
 
-## Issue 1 — 
+## Issue 1 — Critical SQL Injection in SLA Summary Endpoint
 
 **Severity:** 🔴 Critical  
 **Type:** Security — SQL Injection  
 **File:** [`backend/services/buisnessSLAService.js`](file:///e:/E-commerce/backend/services/buisnessSLAService.js) — Line 307  
 **Route:** `GET /api/sla/metrics/:metric/summary` ([`backend/routes/slaRoutes.js`](file:///e:/E-commerce/backend/routes/slaRoutes.js) — Line 38)
 
+### Description
+
+The `period` query parameter is read from the client's HTTP request and passed directly into `getMetricsSummary()` without sanitization. Inside the function, it is string-interpolated into a raw SQL query using a template literal:
+
+**Route handler (slaRoutes.js:38):**
+```js
+const { period = '24h' } = req.query;  // ← attacker-controlled value
+const summary = await slaService.getMetricsSummary(metric, period);
+```
+
+**SQL construction (buisnessSLAService.js:307):**
+```js
+WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 ${period})
+//                                           ^^^^^^^^
+//                          Directly interpolated — never parameterized
+```
+
+### Steps to Reproduce
+
+1. Authenticate as any user (the route only requires `authMiddleware`, not admin).
+2. Send:
+   ```
+   GET /api/sla/metrics/checkout_completion/summary?period=HOUR) OR 1=1--
+   ```
+3. The final query becomes:
+   ```sql
+   WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 HOUR) OR 1=1--
+   ```
+   ...returning all rows regardless of the date filter.
+
+### Expected Behavior
+
+The `period` value should be validated against a whitelist of allowed values (`HOUR`, `DAY`, `WEEK`, `MONTH`) before being used in the query.
+
+### Actual Behavior
+
+Arbitrary SQL clauses are injected and executed by the database engine, bypassing all date-range filters.
+
+### Fix
+
+```js
+// Whitelist valid MySQL interval units
+const VALID_PERIODS = ['HOUR', 'DAY', 'WEEK', 'MONTH'];
+const safePeriod = VALID_PERIODS.includes(period?.toUpperCase()) ? period.toUpperCase() : 'DAY';
+
+// Then use safePeriod in the query instead of period
+WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 ${safePeriod})
+```
+
 ---
 
-## Issue 2 — Guaranteed Runtime Crash: 
+## Issue 2 — Guaranteed Runtime Crash: Variable Shadowing & Missing `path` Import
 
 **Severity:** 🔴 Critical  
 **Type:** Bug — TypeError / Runtime Crash  
 **File:** [`backend/routes/riskRoutes.js`](file:///e:/E-commerce/backend/routes/riskRoutes.js) — Lines 98–103  
 **Route:** `GET /api/risk/modules/:name`
 
+### Description
+
+The `path` Node.js built-in module is **never imported** at the top of `riskRoutes.js`. Additionally, in the loop that iterates over `moduleScores` (a `Map`), the destructured variable `path` shadows any outer `path` identifier:
+
+```js
+// No: const path = require('path'); at top of file
+
+for (const [path, data] of architecturalRiskService.moduleScores) {
+    //         ^^^^  path here is a STRING (the map key), not the 'path' module
+    if (path.basename(path) === name) {  // ← TypeError: path.basename is not a function
+        moduleData = { path, ...data };
+        break;
+    }
+}
+```
+
+`path` is the raw string key of the `Map` (a filesystem path like `"e:/E-commerce/backend/services"`). Calling `.basename()` on a string throws immediately.
+
+### Steps to Reproduce
+
+1. Trigger a risk analysis first so `moduleScores` is populated: `POST /api/risk/analyze`
+2. Request any module by name: `GET /api/risk/modules/cartController`
+3. Server throws:
+   ```
+   TypeError: path.basename is not a function
+       at riskRoutes.js:99
+   ```
+4. Response: `500 Internal Server Error`.
+
+### Expected Behavior
+
+The route correctly looks up the module by its basename and returns the associated risk data.
+
+### Actual Behavior
+
+Every request to `GET /api/risk/modules/:name` crashes with a `TypeError`.
+
+### Fix
+
+```js
+const nodePath = require('path');  // import at top of file
+
+// In the route handler:
+for (const [modulePath, data] of architecturalRiskService.moduleScores) {
+    if (nodePath.basename(modulePath) === name) {
+        moduleData = { path: modulePath, ...data };
+        break;
+    }
+}
+```
+
 ---
 
-## Issue 3 — 
+## Issue 3 — Broken Module Coupling Calculation (Dead Logic)
 
 **Severity:** 🟠 High  
 **Type:** Bug — Logic Error / Incorrect Metric  
 **File:** [`backend/services/architecturalRiskService.js`](file:///e:/E-commerce/backend/services/architecturalRiskService.js) — Lines 263–293
 
+### Description
+
+`calculateCoupling()` is supposed to count both **incoming** (other modules that depend on the target) and **outgoing** (modules that the target depends on) coupling. However, the `continue` statement on line 270 permanently prevents the outgoing check on line 283 from ever being reached:
+
+```js
+for (const mod of allModules) {
+    if (mod === modulePath) continue;   // ← skips the current module entirely
+
+    // ... code to calculate incoming (works correctly) ...
+
+    // Check if target module depends on this module
+    if (modulePath === mod) {           // ← DEAD CODE: this is NEVER true
+        outgoing += deps.length;        //   because equal case was skipped above
+    }
+}
+```
+
+The `continue` on line 270 skips to the next iteration whenever `mod === modulePath`. The check `modulePath === mod` on line 283 is therefore unreachable — it can never be true in the same iteration.
+
+### Impact
+
+- `outgoing` is always `0` for every module.
+- The total coupling `incoming + outgoing` underreports actual coupling by up to 50%.
+- All architectural risk scores derived from coupling are corrupted.
+
+### Steps to Reproduce
+
+1. Trigger analysis: `POST /api/risk/analyze`
+2. Fetch results: `GET /api/risk/report`
+3. Inspect any module's coupling object — `outgoing` will always be `0`.
+
+### Expected Behavior
+
+`outgoing` should reflect the number of dependencies the target module has on other modules.
+
+### Fix
+
+The outgoing coupling must be calculated by separately iterating over the target module's own files, outside the `allModules` loop:
+
+```js
+// Calculate outgoing separately
+const targetFiles = this.findFilesInModule(modulePath);
+for (const file of targetFiles) {
+    const content = fs.readFileSync(file, 'utf8');
+    const deps = this.extractDependencies(content);
+    outgoing += deps.length;
+}
+
+// Then in the loop, only calculate incoming:
+for (const mod of allModules) {
+    if (mod === modulePath) continue;
+    // ... incoming check only ...
+}
+```
 
 ---
 

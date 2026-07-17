@@ -70,6 +70,10 @@ class TechnicalDebtService extends EventEmitter {
         this.isAnalyzing = true;
         console.log('📊 Analyzing technical debt...');
 
+        // Clear per-run state before starting
+        this.todoItems = [];
+        this.deadCodeItems = [];
+
         try {
             const results = {
                 timestamp: new Date().toISOString(),

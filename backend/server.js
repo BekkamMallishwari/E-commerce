@@ -60,6 +60,10 @@ const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
 const mcpRoutes = require("./routes/mcpRoutes"); // ✅ MCP Routes added
 // Add with other imports
+
+const crawlerRoutes = require('./routes/crawlerRoutes');
+const { protectAgainstCrawlers } = require('./services/aiCrawlerProtectionService');
+const liabilityRoutes = require('./routes/liabilityRoutes');
 const maturityRoutes = require('./routes/maturityRoutes');
 const { moduleMaturityService } = require('./services/moduleMaturityService');
 
@@ -176,6 +180,9 @@ outboxService.initialize().catch(err => {
 app.use('/api/outbox', outboxRoutes);
 
 
+
+// Add liability routes
+app.use('/api/liability', liabilityRoutes);
 // Add with other route imports
 const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
 
@@ -231,6 +238,12 @@ await slaService.initialize();
 // Add SLA routes
 app.use('/api/sla', slaRoutes);
 
+
+// Add crawler protection middleware AFTER rate limiting but BEFORE routes
+app.use(protectAgainstCrawlers);
+
+// Add crawler routes
+app.use('/api/crawler', crawlerRoutes);
 // Add with other route imports
 // Add with other imports
 const provenanceRoutes = require('./routes/provenanceRoutes');

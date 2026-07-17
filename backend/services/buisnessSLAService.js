@@ -288,7 +288,10 @@ class BusinessSLAService extends EventEmitter {
     /**
      * Get SLA metrics summary
      */
-    async getMetricsSummary(metric = null, period = '24h') {
+    async getMetricsSummary(metric = null, period = 'DAY') {
+        const VALID_PERIODS = ['HOUR', 'DAY', 'WEEK', 'MONTH'];
+        const safePeriod = VALID_PERIODS.includes(period?.toUpperCase()) ? period.toUpperCase() : 'DAY';
+
         const query = `
             SELECT 
                 metric,
@@ -304,7 +307,7 @@ class BusinessSLAService extends EventEmitter {
                 SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as criticals,
                 SUM(CASE WHEN severity = 'failure' THEN 1 ELSE 0 END) as failures
             FROM sla_measurements
-            WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 ${period})
+            WHERE timestamp > DATE_SUB(NOW(), INTERVAL 1 ${safePeriod})
             ${metric ? 'AND metric = ?' : ''}
             GROUP BY metric
         `;
