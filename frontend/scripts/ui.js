@@ -117,7 +117,9 @@ function initializeRippleEffect() {
                 );
 
             if (
-                !btn
+                !btn ||
+                btn.id === 'share-btn' ||
+                btn.classList.contains('share-option')
             ) {
                 return;
             }
