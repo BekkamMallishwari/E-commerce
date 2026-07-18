@@ -3,6 +3,7 @@ const {
     safeArray,
     safeNumber,
     safeInteger,
+    safeUUID,
     sanitizeString,
 } = require("../utils/helpers");
 const logger = require("../utils/logger");
@@ -121,10 +122,10 @@ const createOrderService = async (connection, orderData) => {
 
         // validate each item
         for (const item of safeArray(items)) {
-            const productId = safeInteger(item.id);
+            const productId = safeUUID(item.id);
 
             // invalid product id
-            if (productId <= 0) {
+            if (!productId) {
                 throw new Error("Invalid product ID");
             }
 
@@ -160,7 +161,7 @@ const createOrderService = async (connection, orderData) => {
 
             // save validated item
             validatedItems.push({
-                id: safeInteger(product.id),
+                id: safeUUID(product.id),
                 name: sanitizeString(product.name),
                 image: sanitizeString(product.image),
                 price: realPrice,
@@ -174,6 +175,7 @@ const createOrderService = async (connection, orderData) => {
         let discountAmount = 0;
         let finalAmount = calculatedTotal;
         let appliedPromoCode = null;
+        let appliedPromoId = null;
 
         if (promo_code) {
             const promoValidation = await validatePromo(promo_code, calculatedTotal);
@@ -187,6 +189,7 @@ const createOrderService = async (connection, orderData) => {
             );
             finalAmount = Number((calculatedTotal - discountAmount).toFixed(2));
             appliedPromoCode = promoValidation.promo.code;
+            appliedPromoId = promoValidation.promo.id;
         }
 
         // create order
@@ -214,7 +217,7 @@ const createOrderService = async (connection, orderData) => {
         `;
 
         const [orderResult] = await connection.query(orderQuery, [
-            safeInteger(user_id),
+            safeUUID(user_id),
             customer_name,
             customer_email,
             customer_phone,
@@ -290,6 +293,33 @@ const createOrderService = async (connection, orderData) => {
                     item.id,
                     "purchase",
                 ]);
+            }
+        }
+
+        // Clear authenticated user's cart
+        if (user_id) {
+            await connection.query(
+                "DELETE FROM cart_items WHERE user_id = ?",
+                [user_id]
+            );
+            logger.info(`Cleared cart for user ${user_id}`);
+        }
+
+        // Track promo usage
+        if (appliedPromoId) {
+            // Increment global usage count
+            await connection.query(
+                "UPDATE promo_codes SET usage_count = usage_count + 1 WHERE id = ?",
+                [appliedPromoId]
+            );
+            
+            // Record individual usage (if authenticated)
+            if (user_id) {
+                await connection.query(
+                    "INSERT INTO promo_usage (promo_id, user_id, order_id, discount_amount, status) VALUES (?, ?, ?, ?, 'applied')",
+                    [appliedPromoId, safeUUID(user_id), orderId, discountAmount]
+                );
+                logger.info(`Recorded promo usage for user ${user_id} and promo ${appliedPromoId}`);
             }
         }
 
