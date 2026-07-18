@@ -160,7 +160,6 @@ class AICrawlerProtectionService extends EventEmitter {
         const windowStart = now - CRAWLER_CONFIG.rateLimit.windowMs;
         traffic.requests = traffic.requests.filter(t => t > windowStart);
         traffic.lastSeen = now;
-        traffic.totalRequests++;
 
         // Check rate limit
         if (traffic.requests.length >= CRAWLER_CONFIG.rateLimit.maxRequests) {
@@ -172,6 +171,8 @@ class AICrawlerProtectionService extends EventEmitter {
                 ip
             };
         }
+
+        traffic.totalRequests++;
 
         // Add current request
         traffic.requests.push(now);
