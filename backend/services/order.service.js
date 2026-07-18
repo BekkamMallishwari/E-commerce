@@ -85,6 +85,70 @@ const validateOrderData = (orderData) => {
 };
 
 // Create order service with enhanced validations
+// Resolve the priced product variant for an order item, if any. A variant is
+// matched either by an explicit `variantId`/`variant_id` on the item, or —
+// since the current cart payload only carries color/size — by matching those
+// against the variant's `attributes` JSON. Only an unambiguous, active match
+// is honored. The lookup is deliberately defensive: deployments without a
+// `product_variants` table simply fall back to base product pricing.
+const resolveItemVariant = async (connection, productId, item) => {
+    const explicitVariantId = safeInteger(item.variantId ?? item.variant_id, 0);
+
+    try {
+        if (explicitVariantId > 0) {
+            const [rows] = await connection.query(
+                `SELECT id, price, stock FROM product_variants
+                 WHERE id = ? AND product_id = ? AND is_active = 1
+                 LIMIT 1 FOR UPDATE`,
+                [explicitVariantId, productId],
+            );
+            return safeArray(rows)[0] || null;
+        }
+
+        const color = sanitizeString(item.color);
+        const size = sanitizeString(item.size);
+
+        if (!color && !size) {
+            return null;
+        }
+
+        const conditions = [];
+        const params = [productId];
+
+        if (color) {
+            conditions.push(
+                "LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, '$.color'))) = LOWER(?)",
+            );
+            params.push(color);
+        }
+
+        if (size) {
+            conditions.push(
+                "LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, '$.size'))) = LOWER(?)",
+            );
+            params.push(size);
+        }
+
+        const [rows] = await connection.query(
+            `SELECT id, price, stock FROM product_variants
+             WHERE product_id = ? AND is_active = 1
+             AND ${conditions.join(" AND ")}
+             LIMIT 2 FOR UPDATE`,
+            params,
+        );
+
+        const matches = safeArray(rows);
+
+        // Ambiguous attribute matches are ignored so we never guess a price.
+        return matches.length === 1 ? matches[0] : null;
+    } catch (error) {
+        logger.warn(
+            `Variant lookup skipped for product ${productId}: ${error.message}`,
+        );
+        return null;
+    }
+};
+
 const createOrderService = async (connection, orderData) => {
     try {
         // Validate order data first
@@ -152,8 +216,21 @@ const createOrderService = async (connection, orderData) => {
                 );
             }
 
-            // safe db price
-            const realPrice = safeNumber(product.price);
+            // Prefer the selected variant's price when it defines one; the base
+            // product price is only a fallback. This keeps order totals correct
+            // for variants that are priced differently from their parent.
+            let realPrice = safeNumber(product.price);
+
+            const variant = await resolveItemVariant(connection, productId, item);
+
+            if (variant && variant.price !== null && variant.price !== undefined) {
+                const variantPrice = safeNumber(variant.price);
+
+                if (variantPrice > 0) {
+                    realPrice = variantPrice;
+                }
+            }
+
             const itemTotal = realPrice * qty;
 
             // floating-safe total
