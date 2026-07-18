@@ -13,6 +13,21 @@ const {
 const MAX_PRODUCT_LIMIT = 50;
 const NORMALIZED_CATEGORY_SQL =
     "LOWER(REPLACE(REPLACE(category, '-', ''), ' ', ''))";
+
+// Whitelisted sort keys → ORDER BY clause. Keys mirror the frontend shop
+// sort control so the same value round-trips through the API. A stable
+// `id DESC` tie-breaker keeps pagination free of overlaps/gaps when the
+// primary sort column has duplicate values.
+const SORT_CLAUSES = {
+    newest: "id DESC",
+    oldest: "id ASC",
+    "price-low-high": "price ASC, id DESC",
+    "price-high-low": "price DESC, id DESC",
+    popularity: "num_reviews DESC, id DESC",
+    "highest-rated": "rating DESC, id DESC",
+    "alphabetical-az": "name ASC, id DESC"
+};
+const DEFAULT_SORT_CLAUSE = SORT_CLAUSES.newest;
 const TOYS_CATEGORY_VALUES = [
     "Toys",
     "Educational Toys",
@@ -60,6 +75,10 @@ const getProducts = async (req, res) => {
                     req.query.search
                 )}%`
                 : null;
+
+        // Resolve sort against the whitelist; unknown/empty falls back to newest.
+        const orderByClause =
+            SORT_CLAUSES[sanitizeString(req.query.sort)] || DEFAULT_SORT_CLAUSE;
 
         let baseQuery = `
             FROM products
@@ -145,7 +164,7 @@ const getProducts = async (req, res) => {
                 rating,
                 num_reviews
             ${baseQuery}
-            ORDER BY id DESC
+            ORDER BY ${orderByClause}
             LIMIT ?
             OFFSET ?
         `;
