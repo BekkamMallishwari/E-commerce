@@ -8,6 +8,7 @@ const {
 );
 
 const paymentService = require("../services/payment.service");
+const { generateInvoicePdf } = require("../services/invoice.service");
 const inventoryReservationService = require("../services/inventoryReservationService");
 
 const {
@@ -630,7 +631,40 @@ module.exports = {
     updateOrderStatus,
     cancelUserOrder,
     validateOrder,
-    getOrderSummary
+    getOrderSummary,
+    downloadInvoice
+};
+
+// download invoice
+const downloadInvoice = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        
+        // Fetch order details
+        const [orders] = await db.query("SELECT * FROM orders WHERE id = ?", [orderId]);
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+        const order = orders[0];
+
+        // Authorization: Ensure user is admin or the order belongs to them
+        if (req.user && req.user.role !== 'admin' && order.user_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: "Unauthorized access to order" });
+        }
+
+        // Fetch order items
+        const [items] = await db.query("SELECT * FROM order_items WHERE order_id = ?", [orderId]);
+
+        // Generate PDF
+        const pdfBuffer = await generateInvoicePdf(order, items);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="invoice-${orderId}.pdf"`);
+        return res.status(200).send(pdfBuffer);
+    } catch (error) {
+        console.error("Error generating invoice:", error);
+        return res.status(500).json({ success: false, message: "Failed to generate invoice" });
+    }
 };
 
 // create payment intent

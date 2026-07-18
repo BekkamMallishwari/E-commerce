@@ -401,7 +401,7 @@
 
 #product-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
   align-items: stretch;
 }
@@ -808,34 +808,34 @@
 
 /* Dark mode fixes for Filters sidebar */
 body.dark-theme .filter-sidebar {
-    background: #1e1e1e;
-    border-color: #333;
+  background: #1e1e1e;
+  border-color: #333;
 }
 
 body.dark-theme .filter-sidebar__header h2,
 body.dark-theme .filter-group legend {
-    color: #ffffff;
+  color: #ffffff;
 }
 
 body.dark-theme .filter-group {
-    border-top-color: #333;
+  border-top-color: #333;
 }
 
 body.dark-theme .filter-options label,
 body.dark-theme .price-filter label {
-    color: #e0e0e0;
+  color: #e0e0e0;
 }
 
 body.dark-theme .price-range-output {
-    color: #0fbfa5; /* slightly brighter teal for contrast on dark bg */
+  color: #0fbfa5; /* slightly brighter teal for contrast on dark bg */
 }
 
 body.dark-theme .filter-close {
-    background: #2a2a2a;
-    color: #e0e0e0;
+  background: #2a2a2a;
+  color: #e0e0e0;
 }
 
 body.dark-theme .clear-filters-btn {
-    background: #088178;
-    color: #ffffff;
+  background: #088178;
+  color: #ffffff;
 }

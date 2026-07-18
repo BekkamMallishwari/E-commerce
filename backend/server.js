@@ -44,7 +44,7 @@ const legalRoutes = require('./routes/legalRoutes');
 const aiLegalRoutes = require('./routes/aiLegalRoutes');
 const routes = require("./routes/index");
 const { authLimiter } = require("./middleware/authLimiter");
-const mcpRoutes = require("./routes/mcpRoutes"); 
+const mcpRoutes = require("./routes/mcpRoutes");
 // Add with other imports
 const agentCheckoutRoutes = require('./routes/agentCheckoutRoutes');
 const { agentCheckoutService } = require('./services/agentCheckoutService');
@@ -128,20 +128,26 @@ app.use('/api/correlation', correlationRoutes);
 
 
 // Initialize maturity service
-await moduleMaturityService.initialize();
+moduleMaturityService.initialize().catch(err => {
+    console.error('Failed to initialize maturity service:', err);
+});
 
 // Add maturity routes
 app.use('/api/maturity', maturityRoutes);
 
 // Initialize SLA service
-await slaService.initialize();
+slaService.initialize().catch(err => {
+    console.error('Failed to initialize SLA service:', err);
+});
 
 // Add SLA routes
 app.use('/api/sla', slaRoutes);
 
 
 // Initialize service
-await jaggedFrontierService.initialize();
+jaggedFrontierService.initialize().catch(err => {
+    console.error('Failed to initialize jagged frontier service:', err);
+});
 
 // Add routes
 app.use('/api/jagged-frontier', jaggedFrontierRoutes);
