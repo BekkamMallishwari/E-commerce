@@ -389,15 +389,20 @@ const Recommendations = (() => {
             // Record interaction
             await postInteraction(productId, 'cart_add');
             
-            // Add to cart
-            const response = await window.AppUtils.apiRequest('/api/cart', {
+            // Add to cart via the backend cart API (apiRequest already
+            // prefixes API_BASE, so the path is /cart/add, not /api/cart).
+            const response = await window.AppUtils.apiRequest('/cart/add', {
                 method: 'POST',
                 body: JSON.stringify({ productId, quantity: 1 })
             });
             
             if (response && response.success) {
                 showToast('✅ Product added to cart!', 'success');
-                // Update cart count
+                // Pull the authoritative cart back into the local mirror so the
+                // navbar count and cart page reflect the new item.
+                if (typeof window.AppUtils.loadUserCollections === 'function') {
+                    await window.AppUtils.loadUserCollections();
+                }
                 if (typeof window.updateCartCount === 'function') {
                     window.updateCartCount();
                 }
