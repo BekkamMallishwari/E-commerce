@@ -307,8 +307,7 @@ class PuppeteerPoolService extends EventEmitter {
         }
 
         // Keep minimum instances
-        const remaining = this.pool.length - toRemove.length;
-        const removeCount = Math.min(toRemove.length, remaining - this.config.minInstances);
+        const removeCount = Math.min(toRemove.length, this.pool.length - this.config.minInstances);
 
         for (let i = 0; i < removeCount && i < toRemove.length; i++) {
             await this.removeInstance(toRemove[i]);
