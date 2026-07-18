@@ -285,15 +285,15 @@
     };
 
     const getProductReviewCount = (product) => {
-        const count = Number(
-            product?.num_reviews ??
-            product?.numReviews ??
-            product?.reviewCount ??
-            0
-        );
-
-        return Number.isFinite(count) ? count : 0;
-    };
+    const count = Number(
+        product?.num_reviews ??
+        product?.numReviews ??
+        product?.reviewCount ??
+        product?.sales_count ??  // ← ADD THIS LINE
+        0
+    );
+    return Number.isFinite(count) ? count : 0;
+};
 
     const getSearchHaystack = (product) =>
         [
@@ -411,7 +411,7 @@
             "price-low-high": (a, b) => getProductPrice(a) - getProductPrice(b),
             "price-high-low": (a, b) => getProductPrice(b) - getProductPrice(a),
             popularity: (a, b) => getProductReviewCount(b) - getProductReviewCount(a),
-            "highest-rated": (a, b) => getProductRating(b) - getProductRating(a),
+            "highest-rated": (a, b) => getProductRating(b) - getProductRating(a) || getProductTitle(a).localeCompare(getProductTitle(b)),
             "alphabetical-az": (a, b) =>
                 getProductTitle(a).localeCompare(getProductTitle(b))
         };
