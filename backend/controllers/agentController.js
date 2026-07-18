@@ -204,6 +204,7 @@ exports.listAgents = async (req, res) => {
     } catch (error) {
         console.error("List agent error:", error);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch lists"
         });
     }
