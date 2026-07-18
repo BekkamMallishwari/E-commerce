@@ -322,6 +322,9 @@ router.get("/:id/summary", authMiddleware, orderController.getOrderSummary);
 // Get single order with items
 router.get("/:id", authMiddleware, orderController.getOrderById);
 
+// Download order invoice
+router.get("/:id/invoice", authMiddleware, orderController.downloadInvoice);
+
 // Cancel order with reason
 router.patch("/:id/cancel", authMiddleware, (req, res, next) => {
     const reasonValidation = validateReason(req.body.reason);
