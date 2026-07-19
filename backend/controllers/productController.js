@@ -14,6 +14,13 @@ const MAX_PRODUCT_LIMIT = 50;
 const NORMALIZED_CATEGORY_SQL =
     "LOWER(REPLACE(REPLACE(category, '-', ''), ' ', ''))";
 
+const FULLTEXT_SEARCH_COLUMNS = "name, description, short_description, meta_keywords";
+
+const FULLTEXT_UNAVAILABLE_CODES = new Set([
+    "ER_FT_MATCHING_KEY_NOT_FOUND",
+    "ER_BAD_FIELD_ERROR"
+]);
+
 // Whitelisted sort keys → ORDER BY clause. Keys mirror the frontend shop
 // sort control so the same value round-trips through the API. A stable
 // `id DESC` tie-breaker keeps pagination free of overlaps/gaps when the
@@ -61,6 +68,23 @@ function parsePaginationValue(value, defaultValue, fieldName) {
     return parsedValue;
 }
 
+function escapeLikeTerm(value) {
+    return value.replace(/[%_\\]/g, "\\$&");
+}
+
+function toBooleanModeQuery(value) {
+    return value
+        .split(/\s+/)
+        .map((token) => token.replace(/[+\-<>()~*"@]/g, ""))
+        .filter(Boolean)
+        .map((token) => `+${token}*`)
+        .join(" ");
+}
+
+function isFulltextUnavailable(error) {
+    return Boolean(error) && FULLTEXT_UNAVAILABLE_CODES.has(error.code);
+}
+
 // ---------- Get all products ----------
 const getProducts = async (req, res) => {
     try {
@@ -69,23 +93,22 @@ const getProducts = async (req, res) => {
         const limit = Math.min(requestedLimit, MAX_PRODUCT_LIMIT);
         const offset = (page - 1) * limit;
 
-        const search =
-            req.query.search
-                ? `%${sanitizeString(
-                    req.query.search
-                )}%`
-                : null;
+        const rawSearch = req.query.search
+            ? sanitizeString(req.query.search)
+            : "";
+        const likeSearch = rawSearch
+            ? `%${escapeLikeTerm(rawSearch)}%`
+            : null;
+        const booleanSearch = rawSearch
+            ? toBooleanModeQuery(rawSearch)
+            : "";
 
         // Resolve sort against the whitelist; unknown/empty falls back to newest.
         const orderByClause =
             SORT_CLAUSES[sanitizeString(req.query.sort)] || DEFAULT_SORT_CLAUSE;
 
-        let baseQuery = `
-            FROM products
-        `;
-
-        const conditions = [];
-        const params = [];
+        const filterConditions = [];
+        const filterParams = [];
 
         // category filter (case/format-insensitive)
         if (req.query.category) {
@@ -106,17 +129,17 @@ const getProducts = async (req, res) => {
                     ? TOYS_CATEGORY_VALUES
                     : STATIONERY_CATEGORY_VALUES;
 
-                conditions.push(
+                filterConditions.push(
                     `${NORMALIZED_CATEGORY_SQL} IN (${categoryValues.map(
                         () => "LOWER(REPLACE(REPLACE(?, '-', ''), ' ', ''))"
                     ).join(", ")})`
                 );
-                params.push(...categoryValues);
+                filterParams.push(...categoryValues);
             } else {
-                conditions.push(
+                filterConditions.push(
                     `${NORMALIZED_CATEGORY_SQL} = LOWER(REPLACE(REPLACE(?, '-', ''), ' ', ''))`
                 );
-                params.push(sanitizedCategory);
+                filterParams.push(sanitizedCategory);
             }
         }
 
@@ -124,75 +147,89 @@ const getProducts = async (req, res) => {
         if (
             req.query.featured === "true"
         ) {
-            conditions.push(
+            filterConditions.push(
                 "featured = 1"
             );
         }
 
-        // search filter
-        if (search) {
-            conditions.push(
-                "name LIKE ?"
-            );
-            params.push(search);
-        }
+        const runProductQuery = async (useFulltext) => {
+            const conditions = [...filterConditions];
+            const params = [...filterParams];
 
-        // build where clause
-        if (conditions.length) {
-            baseQuery += `
-                WHERE ${conditions.join(" AND ")}
+            if (rawSearch) {
+                if (useFulltext) {
+                    conditions.push(
+                        `MATCH(${FULLTEXT_SEARCH_COLUMNS}) AGAINST (? IN BOOLEAN MODE)`
+                    );
+                    params.push(booleanSearch);
+                } else {
+                    conditions.push("name LIKE ?");
+                    params.push(likeSearch);
+                }
+            }
+
+            const whereClause = conditions.length
+                ? `WHERE ${conditions.join(" AND ")}`
+                : "";
+
+            const countQuery = `
+                SELECT COUNT(*) AS total
+                FROM products
+                ${whereClause}
             `;
-        }
 
-        // count query
-        const countQuery = `
-            SELECT COUNT(*) AS total
-            ${baseQuery}
-        `;
+            const productQuery = `
+                SELECT
+                    id,
+                    name,
+                    description,
+                    price,
+                    image,
+                    category,
+                    stock,
+                    featured,
+                    rating,
+                    num_reviews
+                FROM products
+                ${whereClause}
+                ORDER BY ${orderByClause}
+                LIMIT ?
+                OFFSET ?
+            `;
 
-        // product query
-        const productQuery = `
-            SELECT
-                id,
-                name,
-                description,
-                price,
-                image,
-                category,
-                stock,
-                featured,
-                rating,
-                num_reviews
-            ${baseQuery}
-            ORDER BY ${orderByClause}
-            LIMIT ?
-            OFFSET ?
-        `;
+            const [countResults] = await db.query(countQuery, params);
+            const total = Number(countResults?.[0]?.total || 0);
 
-        // get total count
-        const [
-            countResults
-        ] = await db.query(
-            countQuery,
-            params
-        );
-
-        const total =
-            Number(
-                countResults?.[0]?.total || 0
-            );
-
-        // fetch products
-        const [
-            results
-        ] = await db.query(
-            productQuery,
-            [
+            const [results] = await db.query(productQuery, [
                 ...params,
                 limit,
                 offset
-            ]
-        );
+            ]);
+
+            return { total, results };
+        };
+
+        const shouldUseFulltext = Boolean(rawSearch) && booleanSearch.length > 0;
+
+        let queryResult;
+        if (shouldUseFulltext) {
+            try {
+                queryResult = await runProductQuery(true);
+            } catch (error) {
+                if (isFulltextUnavailable(error)) {
+                    console.warn(
+                        `FULLTEXT search unavailable (${error.code}); falling back to LIKE`
+                    );
+                    queryResult = await runProductQuery(false);
+                } else {
+                    throw error;
+                }
+            }
+        } else {
+            queryResult = await runProductQuery(false);
+        }
+
+        const { total, results } = queryResult;
 
         return res.status(200)
             .json({
