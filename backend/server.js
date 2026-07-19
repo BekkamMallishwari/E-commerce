@@ -251,6 +251,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// Webhook routes must come BEFORE global body parsers to receive raw body
+const webhookRoutes = require('./routes/webhookRoutes');
+app.use('/api/webhooks', webhookRoutes);
+
 // JSON and URL-encoded body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
