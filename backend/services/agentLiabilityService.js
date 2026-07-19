@@ -7,26 +7,10 @@ const db = require('../config/db').promise;
 // LIABILITY CONFIGURATION
 // ============================================
 
-const LIABILITY_CONFIG = {
-    maxTransactionAmount: 50000,
-    maxDiscountPercentage: 50,
-    requireSignature: true,
-    liabilityTiers: {
-        FULL: { coverage: 100, premium: 0.05 },
-        PARTIAL: { coverage: 50, premium: 0.025 },
-        LIMITED: { coverage: 25, premium: 0.01 },
-        NONE: { coverage: 0, premium: 0 }
-    },
-    insuranceReserve: 100000,
-    fraudCoverage: 0.9
-};
-
 // ============================================
 // AGENT LIABILITY SERVICE
+// ============================================
 
-
-const crypto = require('crypto');
-const db = require('../config/db').promise;
 const Joi = require('joi');
 const winston = require('winston');
 const Redis = require('ioredis');
@@ -366,8 +350,6 @@ class AgentLiabilityService {
         }
 
         return liability;
-
-        this.setupCleanupJobs();
     }
 
     /**
@@ -568,49 +550,6 @@ class AgentLiabilityService {
      * Handle a liability claim
      */
     async handleLiabilityClaim(claimData) {
-        const claim = {
-            id: this.generateClaimId(),
-            agentId: claimData.agentId,
-            authorizationId: claimData.authorizationId,
-            amount: claimData.amount,
-            reason: claimData.reason,
-            evidence: claimData.evidence || [],
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            resolvedAt: null,
-            resolution: null
-        };
-
-        const auth = await this.getAuthorization(claimData.authorizationId);
-        if (!auth) {
-            claim.status = 'rejected';
-            claim.resolution = 'Authorization not found';
-            return claim;
-        }
-
-        const liability = auth.liability;
-        if (claim.amount > liability.liabilityAmount) {
-            claim.status = 'rejected';
-            claim.resolution = 'Claim amount exceeds liability coverage';
-            return claim;
-        }
-
-        // Process with insurance
-        const agent = await this.getAgent(claimData.agentId);
-        if (agent.insuranceActive) {
-            const insurance = await this.getInsurancePolicy(agent.agentId);
-            if (insurance && insurance.active && insurance.remainingBalance >= claim.amount) {
-                claim.insuranceUsed = claim.amount;
-                await this.deductInsurance(agent.agentId, claim.amount);
-                claim.status = 'resolved';
-                claim.resolution = 'Paid by insurance';
-                claim.resolvedAt = new Date().toISOString();
-            }
-        }
-
-        await this.storeClaim(claim);
-        return claim;
-
         const operation = 'handleClaim';
         const end = latencyHistogram.startTimer({ operation });
 
@@ -755,11 +694,7 @@ class AgentLiabilityService {
     /**
      * Create insurance policy
      */
-
-    async createInsurancePolicy(agentId) {
-
     async createInsurancePolicy(agentId, transaction = null) {
-
         const policy = {
             id: this.generatePolicyId(),
             agentId,
@@ -767,41 +702,18 @@ class AgentLiabilityService {
             active: true,
             balance: LIABILITY_CONFIG.insuranceReserve,
             remainingBalance: LIABILITY_CONFIG.insuranceReserve,
-
             premium: LIABILITY_CONFIG.tiers.PARTIAL.premium,
-
             claims: 0,
             totalPaid: 0
         };
 
-        await this.storeInsurancePolicy(policy);
+        await this.storeInsurancePolicy(policy, transaction);
         return policy;
     }
 
     // ============================================
     // HELPER FUNCTIONS
     // ============================================
-
-    async getAgent(agentId) {
-        if (this.agentRegistrations.has(agentId)) {
-            return this.agentRegistrations.get(agentId);
-        }
-        try {
-            const [rows] = await db.query(
-                'SELECT * FROM agent_liability_registrations WHERE agent_id = ?',
-                [agentId]
-            );
-            if (rows.length > 0) {
-                const agent = rows[0];
-                agent.permissions = JSON.parse(agent.permissions);
-                this.agentRegistrations.set(agentId, agent);
-                return agent;
-            }
-        } catch (error) {
-            console.error('Get agent error:', error);
-        await this.storeInsurancePolicy(policy, transaction);
-        return policy;
-    }
 
     /**
      * Get insurance policy with caching
@@ -863,8 +775,7 @@ class AgentLiabilityService {
     // DATABASE OPERATIONS
     // ============================================
 
-    async storeRegistration(registration) {
-        await db.query(
+
     /**
      * Deduct from insurance
      */
@@ -919,8 +830,6 @@ class AgentLiabilityService {
         );
     }
 
-    async storeAuthorization(authorization) {
-        await db.query(
 
     /**
      * Store authorization
@@ -1030,8 +939,6 @@ class AgentLiabilityService {
         }
     }
 
-    async storeClaim(claim) {
-        await db.query(
 
     /**
      * Get authorization
@@ -1262,16 +1169,6 @@ class AgentLiabilityService {
                  FROM liability_claims
                  WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)`
             );
-
-            return { agents: stats[0], claims: claims[0] };
-        } catch (error) {
-            console.error('Statistics error:', error);
-            return null;
-        }
-    }
-}
-
-module.exports = new AgentLiabilityService();
 
             return {
                 agents: stats[0],
