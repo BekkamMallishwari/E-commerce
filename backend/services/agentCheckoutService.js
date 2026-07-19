@@ -435,7 +435,7 @@ class AgentCheckoutService extends EventEmitter {
 
         // Check for expired reviews (auto-reject after 24 hours)
         const now = new Date();
-        const pending = this.getPendingReviews();
+        const pending = this.reviewQueue.map(id => this.checkoutSessions.get(id)).filter(Boolean);
 
         for (const session of pending) {
             const created = new Date(session.createdAt);
