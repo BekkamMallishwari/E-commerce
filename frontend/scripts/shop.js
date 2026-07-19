@@ -2,10 +2,21 @@
 (function(){
 let allProducts = [];
 let filteredProducts = [];
-// PAGINATION STATE
-let currentPage = 1;
-let totalPages = 1;
-let currentProducts = [];
+
+// SERVER PAGINATION / INFINITE SCROLL STATE
+// The catalog is streamed from the backend one page at a time and appended
+// to `allProducts`; all filtering/sorting still happens client-side over the
+// accumulated set. `sort` is the one dimension driven server-side so the
+// paginated order stays globally consistent across pages.
+let serverPage = 0;
+let serverTotalPages = 1;
+let serverHasNext = true;
+let isFetchingPage = false;
+let catalogExhausted = false;
+let lastServerSort = "";
+let priceTouched = false;
+let productObserver = null;
+const loadedProductIds = new Set();
 
 // Local fallback sample products (used when backend returns no products)
 const fallbackProducts = [
@@ -54,8 +65,9 @@ const SHOP_IMAGE_FALLBACK =
         </svg>`
     );
 
-const PRODUCTS_PER_PAGE =
-    globalThis.CONFIG?.PRODUCTS_PER_PAGE || 8;
+// Number of products requested per backend page (server-side pagination).
+const PAGE_SIZE =
+    globalThis.CONFIG?.PRODUCTS_PER_PAGE || 12;
 
 let filters = {
     search: "",
@@ -194,45 +206,151 @@ async function syncWishlistFallback(product) {
     updateWishlistButtons(product.id, !exists);
 }
 
-// FETCH PRODUCTS
-async function fetchProducts() {
-    if (elements.productContainer) {
-        elements.productContainer.innerHTML =
-            `
-                <div class="loading-products">
-                    Loading products...
-                </div>
-            `;
+// Reset accumulated catalog state so the next load starts from page 1.
+function resetCatalog() {
+    allProducts = [];
+    loadedProductIds.clear();
+    serverPage = 0;
+    serverTotalPages = 1;
+    serverHasNext = true;
+    catalogExhausted = false;
+}
+
+// Build the paginated products endpoint. `sort` round-trips to the backend so
+// each page is ordered consistently; search/category/price/rating/availability
+// stay client-side over the accumulated catalog.
+function buildProductsQuery(page) {
+    const params =
+        new URLSearchParams();
+
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
+
+    if (filters.sort) {
+        params.set("sort", filters.sort);
     }
+
+    return `/products?${params.toString()}`;
+}
+
+// Append a freshly fetched page to the catalog, skipping ids already loaded so
+// a re-fetch can never duplicate cards.
+function appendProducts(products) {
+    AppUtils.safeArray(products).forEach((product) => {
+        const key = String(product.id);
+
+        if (loadedProductIds.has(key)) {
+            return;
+        }
+
+        loadedProductIds.add(key);
+        allProducts.push(product);
+    });
+}
+
+// Fetch the next backend page and merge it in. Guards against concurrent or
+// past-the-end requests so the IntersectionObserver can fire freely.
+async function loadNextProductsPage() {
+    if (isFetchingPage || !serverHasNext) {
+        return;
+    }
+
+    const isFirstPage = serverPage === 0;
+    isFetchingPage = true;
+    renderScrollStatus();
 
     try {
         const data =
             await AppUtils.apiRequest(
-                "/products?page=1&limit=50"
+                buildProductsQuery(serverPage + 1)
             );
 
-        allProducts =
-            data.success && Array.isArray(data.products) && data.products.length
-                ? data.products
-                : fallbackProducts;
+        const products =
+            data && data.success
+                ? AppUtils.safeArray(data.products)
+                : [];
 
+        if (isFirstPage && products.length === 0) {
+            // Backend reachable but empty (or unsuccessful) — fall back to the
+            // bundled sample catalog so the shop is never blank.
+            appendProducts(fallbackProducts);
+            serverHasNext = false;
+            catalogExhausted = true;
+        } else {
+            appendProducts(products);
+            serverPage += 1;
+            serverTotalPages =
+                Number(data.totalPages) || serverTotalPages;
+            serverHasNext =
+                data.hasNextPage === true
+                || serverPage < serverTotalPages;
+            catalogExhausted = !serverHasNext;
+        }
     } catch (error) {
-        console.error(
-            "SHOP FETCH ERROR:",
-            error
-        );
+        console.error("SHOP FETCH ERROR:", error);
 
-        allProducts =
-            fallbackProducts;
+        if (isFirstPage) {
+            appendProducts(fallbackProducts);
+        }
+
+        serverHasNext = false;
+        catalogExhausted = true;
+    } finally {
+        isFetchingPage = false;
     }
 
+    if (isFirstPage) {
+        initializeFilterControls();
+    } else {
+        refreshFilterControls();
+    }
+
+    applyFilters();
+
+    // Keep filling the viewport: when a client-side filter yields a short grid
+    // (or the first page is shorter than the screen) the sentinel stays visible,
+    // so pull the next page until the viewport is full or the catalog is drained.
+    maybeAutoLoadMore();
+}
+
+// Load more automatically while the sentinel is on screen. This is what makes
+// client-side search/category filtering work across the whole catalog: sparse
+// results leave the sentinel visible, which drains remaining pages.
+function maybeAutoLoadMore() {
+    if (!serverHasNext || isFetchingPage || !productObserver) {
+        return;
+    }
+
+    const sentinel =
+        document.getElementById("product-scroll-sentinel");
+
+    if (!sentinel) {
+        return;
+    }
+
+    requestAnimationFrame(() => {
+        const rect = sentinel.getBoundingClientRect();
+        const viewportHeight =
+            globalThis.innerHeight || document.documentElement.clientHeight;
+
+        if (rect.top <= viewportHeight + 200) {
+            loadNextProductsPage();
+        }
+    });
+}
+
+// FETCH PRODUCTS — entry point: reset and stream the catalog from page 1.
+function fetchProducts() {
     searchHistory =
         getStoredSearchHistory();
 
-    initializeFilterControls();
-    applyFilters({
-        resetPage: true
-    });
+    lastServerSort =
+        elements.sortSelect?.value || "newest";
+    filters.sort = lastServerSort;
+
+    resetCatalog();
+    setupProductObserver();
+    loadNextProductsPage();
 }
 
 // EMPTY STATE
@@ -615,6 +733,15 @@ function renderCategoryFilters() {
         return;
     }
 
+    // Preserve the user's ticked categories across catalog re-renders (the
+    // list grows as more pages stream in via infinite scroll).
+    const checkedValues =
+        new Set(
+            Array.from(
+                document.querySelectorAll('input[name="category-filter"]:checked')
+            ).map((input) => input.value)
+        );
+
     const categories =
         getFilterUtils().uniqueCategories(
             allProducts
@@ -628,11 +755,30 @@ function renderCategoryFilters() {
                         type="checkbox"
                         name="category-filter"
                         value="${AppUtils.escapeHTML(category)}"
+                        ${checkedValues.has(category) ? "checked" : ""}
                     >
                     ${AppUtils.escapeHTML(category)}
                 </label>
             `
         ).join("");
+}
+
+// Refresh derived controls after each streamed page without clobbering the
+// user's active selections. Price bounds only auto-widen while the user hasn't
+// manually adjusted the sliders.
+function refreshFilterControls() {
+    priceBounds =
+        getFilterUtils().getPriceBounds(
+            allProducts
+        );
+
+    if (!priceTouched) {
+        filters.minPrice = priceBounds.min;
+        filters.maxPrice = priceBounds.max;
+    }
+
+    renderCategoryFilters();
+    updatePriceControls();
 }
 
 function updatePriceControls() {
@@ -702,8 +848,14 @@ function applyFilters({ resetPage = false } = {}) {
 
     readFiltersFromControls();
 
-    if (resetPage) {
-        currentPage = 1;
+    // Sort is the server-driven dimension. When it changes, the accumulated
+    // pages are ordered by the old key, so restart streaming from page 1 with
+    // the new sort to keep pagination consistent.
+    if (filters.sort !== lastServerSort) {
+        lastServerSort = filters.sort;
+        resetCatalog();
+        loadNextProductsPage();
+        return;
     }
 
     filteredProducts =
@@ -715,39 +867,24 @@ function applyFilters({ resetPage = false } = {}) {
             filters.sort
         );
 
-    totalPages =
-        Math.max(
-            1,
-            Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE)
-        );
-
-    currentPage =
-        Math.min(
-            currentPage,
-            totalPages
-        );
-
-    const startIndex =
-        (currentPage - 1) * PRODUCTS_PER_PAGE;
-
-    currentProducts =
-        filteredProducts.slice(
-            startIndex,
-            startIndex + PRODUCTS_PER_PAGE
-        );
-
     updatePriceControls();
     updateResultsSummary();
     renderProducts(
-        currentProducts,
+        filteredProducts,
         {
             emptyMessage:
-                filters.megaCategory || filters.megaSubcategory
-                    ? "No products available in this category."
-                    : "No products found."
+                isFetchingPage
+                    ? "Loading products..."
+                    : filters.megaCategory || filters.megaSubcategory
+                        ? "No products available in this category."
+                        : "No products found."
         }
     );
-    renderPagination();
+    renderScrollStatus();
+
+    // A filter change can leave the sentinel on screen with more pages
+    // available; pull them so filtering reflects the full catalog.
+    maybeAutoLoadMore();
 }
 
 function updateResultsSummary() {
@@ -1062,9 +1199,12 @@ function setupFilterControls() {
     [elements.minPriceRange, elements.maxPriceRange].forEach((range) => {
         range?.addEventListener(
             "input",
-            () => applyFilters({
-                resetPage: true
-            })
+            () => {
+                priceTouched = true;
+                applyFilters({
+                    resetPage: true
+                });
+            }
         );
     });
 
@@ -1108,6 +1248,7 @@ function setupFilterControls() {
                 elements.sortSelect.value = "newest";
             }
 
+            priceTouched = false;
             filters.minPrice = priceBounds.min;
             filters.maxPrice = priceBounds.max;
             filters.megaCategory = "";
@@ -1165,115 +1306,79 @@ function setupFilterDrawer() {
     );
 }
 
-// PAGINATION UI
-function renderPagination() {
+// INFINITE SCROLL UI
+// The `#pagination` section holds the loading indicator, an end-of-results
+// note, and the sentinel element the IntersectionObserver watches.
+function renderScrollStatus() {
+    let statusBar =
+        document.getElementById("pagination");
 
-    let pagination =
-        document.getElementById(
-            "pagination"
-        );
-
-    // auto create pagination
-    if (
-        !pagination
-    ) {
-
-        pagination =
-            document.createElement(
-                "div"
-            );
-
-        pagination.id =
-            "pagination";
-
-        pagination.className =
-            "pagination";
-
-        elements.productContainer?.after(
-            pagination
-        );
+    if (!statusBar) {
+        statusBar =
+            document.createElement("section");
+        statusBar.id = "pagination";
+        elements.productContainer?.after(statusBar);
     }
 
-    pagination.innerHTML =
-        "";
+    const hasResults =
+        filteredProducts.length > 0;
 
-    // previous
-    const prevBtn =
-        document.createElement(
-            "button"
-        );
+    let statusMarkup = "";
 
-    prevBtn.innerText =
-        "← Prev";
+    if (isFetchingPage) {
+        statusMarkup = `
+            <div class="scroll-loader" role="status" aria-live="polite">
+                <span class="scroll-spinner" aria-hidden="true"></span>
+                <span>Loading more products…</span>
+            </div>
+        `;
+    } else if (catalogExhausted && !serverHasNext && hasResults) {
+        statusMarkup = `
+            <p class="scroll-end" role="status">
+                You've reached the end of the catalog.
+            </p>
+        `;
+    }
 
-    prevBtn.className =
-        "pagination-btn";
+    statusBar.innerHTML = `
+        ${statusMarkup}
+        <div id="product-scroll-sentinel" class="scroll-sentinel" aria-hidden="true"></div>
+    `;
 
-    prevBtn.disabled =
-        currentPage <= 1;
+    observeSentinel();
+}
 
-    prevBtn.onclick =
-        () => {
+// (Re)attach the observer to the current sentinel node. The sentinel is
+// recreated on every status render, so it must be re-observed each time.
+function observeSentinel() {
+    if (!productObserver) {
+        return;
+    }
 
-            if (
-                currentPage > 1
-            ) {
+    const sentinel =
+        document.getElementById("product-scroll-sentinel");
 
-                currentPage -= 1;
-                applyFilters();
+    if (sentinel) {
+        productObserver.observe(sentinel);
+    }
+}
+
+function setupProductObserver() {
+    if (productObserver || typeof IntersectionObserver === "undefined") {
+        return;
+    }
+
+    productObserver =
+        new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    loadNextProductsPage();
+                }
+            },
+            {
+                rootMargin: "200px 0px"
             }
-        };
-
-    pagination.appendChild(
-        prevBtn
-    );
-
-    // page info
-    const pageInfo =
-        document.createElement(
-            "span"
         );
-
-    pageInfo.className = 
-        "pagination-info";
-
-    pageInfo.innerText =
-        `Page ${currentPage} of ${totalPages}`;
-
-    pagination.appendChild(
-        pageInfo
-    );
-
-    // next
-    const nextBtn =
-        document.createElement(
-            "button"
-        );
-
-    nextBtn.innerText =
-        "Next →";
-
-    nextBtn.className = 
-        "pagination-btn";
-
-    nextBtn.disabled =
-        currentPage >= totalPages;
-
-    nextBtn.onclick =
-        () => {
-
-            if (
-                currentPage < totalPages
-            ) {
-
-                currentPage += 1;
-                applyFilters();
-            }
-        };
-
-    pagination.appendChild(
-        nextBtn
-    );
 }
 
 // INITIALIZATION
