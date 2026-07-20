@@ -12,6 +12,7 @@ const recommendationRoutes = require("./recommendationRoutes");
 const cartRoutes = require("./cartRoutes");
 const pincodeRoutes = require("./pincodeRoutes");
 const subscriptionRoutes = require("./subscriptionRoutes");
+const courierWebhookRoutes = require("./courierWebhookRoutes");
 
 router.use("/products", productRoutes);
 router.use("/auth", authRoutes);
@@ -24,5 +25,6 @@ router.use("/recommendations", recommendationRoutes);
 router.use("/cart", cartRoutes);
 router.use("/pincode", pincodeRoutes);
 router.use("/subscriptions", subscriptionRoutes);
+router.use("/courier-webhooks", courierWebhookRoutes);
 
 module.exports = router;
