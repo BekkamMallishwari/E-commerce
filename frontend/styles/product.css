@@ -539,3 +539,126 @@ body.dark-theme .no-products {
 body.dark-theme .review-container p {
     color: #aaaaaa;
 }
+
+/* ========================================
+   IMAGE ZOOM / LENS EFFECT (Issue #779)
+   ======================================== */
+
+.main-image-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #f7f7f7;
+    border: 1px solid #eee;
+    cursor: crosshair;
+}
+
+.main-image-wrapper #main-product-image {
+    width: 100%;
+    display: block;
+    pointer-events: none;
+    border-radius: 0;
+    background: #f7f7f7;
+}
+
+/* ===== LENS OVERLAY ===== */
+.image-lens {
+    position: absolute;
+    border: 2.5px solid #088178;
+    background-color: rgba(8, 129, 120, 0.08);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: none;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(8, 129, 120, 0.25);
+    backdrop-filter: blur(1px);
+}
+
+/* ===== ZOOMED RESULT ===== */
+.zoom-result {
+    position: absolute;
+    right: -110%;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    background-repeat: no-repeat;
+    display: none;
+    z-index: 20;
+    background-color: white;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    overflow: hidden;
+    animation: zoomFadeIn 0.2s ease-out;
+}
+
+@keyframes zoomFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ===== ACTIVE ZOOM STATE ===== */
+.zoom-active .image-lens {
+    display: block !important;
+}
+
+.zoom-active .zoom-result {
+    display: block !important;
+}
+
+/* ===== RESPONSIVE LENS SIZE ===== */
+@media (max-width: 768px) {
+    .image-lens {
+        width: 120px;
+        height: 120px;
+    }
+    .zoom-result {
+        width: 80%;
+        right: -85%;
+    }
+}
+
+@media (max-width: 480px) {
+    .image-lens {
+        width: 100px;
+        height: 100px;
+    }
+    .zoom-result {
+        width: 70%;
+        right: -75%;
+        height: 80%;
+        top: 10%;
+    }
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+body.dark-theme .main-image-wrapper {
+    background: #2a2a2a;
+    border-color: #333;
+}
+
+body.dark-theme .main-image-wrapper #main-product-image {
+    background: #2a2a2a;
+}
+
+body.dark-theme .zoom-result {
+    background-color: #1e1e1e;
+    border-color: #444;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme .image-lens {
+    border-color: #088178;
+    background-color: rgba(8, 129, 120, 0.12);
+    box-shadow: 0 0 20px rgba(8, 129, 120, 0.15);
+}

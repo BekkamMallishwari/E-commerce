@@ -529,6 +529,7 @@ function initializeProductPage() {
         loadRecentlyViewedRecommendations();
     }
 
+    // ===== INITIALIZE IMAGE ZOOM (Lens Effect) =====
     initializeImageZoom();
 
     initializeProductGallery(
@@ -826,50 +827,180 @@ function renderProduct(
         `${product.name} | AnthropicBots E-Commerce`;
 }
 
-// image zoom
+// ========================================
+// IMAGE ZOOM / LENS EFFECT (Issue #779)
+// ========================================
+
 function initializeImageZoom() {
+    const wrapper = document.getElementById('mainImageWrapper');
+    const image = document.getElementById('main-product-image');
+    const lens = document.getElementById('imageLens');
+    const zoomResult = document.getElementById('zoomResult');
 
-    if (
-        !productElements.mainImage
-    ) {
-
+    // If elements don't exist, skip
+    if (!wrapper || !image || !lens || !zoomResult) {
+        console.warn('⚠️ Zoom elements not found, skipping initialization');
         return;
     }
 
-    // avoid duplicate listeners
-    if (
-        productElements.mainImage.dataset.zoomReady
-    ) {
-
+    // Avoid duplicate initialization
+    if (wrapper.dataset.zoomReady === 'true') {
         return;
     }
+    wrapper.dataset.zoomReady = 'true';
 
-    productElements.mainImage.dataset.zoomReady =
-        "true";
+    // Configuration
+    const ZOOM_FACTOR = 2.5;
+    let lensSize = 150;
+    let isZoomActive = false;
+    let currentImageSrc = image.src;
 
-    productElements.mainImage.style.transition =
-        "0.3s ease";
-
-    productElements.mainImage.addEventListener(
-        "mouseenter",
-        () => {
-
-            productElements.mainImage.style.transform =
-                "scale(1.05)";
+    // Update lens size based on viewport
+    function updateLensSize() {
+        const width = window.innerWidth;
+        if (width <= 480) {
+            lensSize = 100;
+        } else if (width <= 768) {
+            lensSize = 120;
+        } else {
+            lensSize = 150;
         }
-    );
+        lens.style.width = lensSize + 'px';
+        lens.style.height = lensSize + 'px';
+    }
 
-    productElements.mainImage.addEventListener(
-        "mouseleave",
-        () => {
+    // Update zoom background when image changes
+    function updateZoomBackground() {
+        const rect = wrapper.getBoundingClientRect();
+        const bgWidth = rect.width * ZOOM_FACTOR;
+        const bgHeight = rect.height * ZOOM_FACTOR;
+        zoomResult.style.backgroundImage = `url('${currentImageSrc}')`;
+        zoomResult.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
+        zoomResult.style.backgroundPosition = '50% 50%';
+    }
 
-            productElements.mainImage.style.transform =
-                "scale(1)";
+    // Position lens and zoom result
+    function positionLens(clientX, clientY) {
+        const rect = wrapper.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const wrapperWidth = rect.width;
+        const wrapperHeight = rect.height;
+
+        // Calculate lens position (center on cursor)
+        let lensX = x - (lensSize / 2);
+        let lensY = y - (lensSize / 2);
+
+        // Keep lens within wrapper bounds
+        lensX = Math.max(0, Math.min(lensX, wrapperWidth - lensSize));
+        lensY = Math.max(0, Math.min(lensY, wrapperHeight - lensSize));
+
+        lens.style.left = lensX + 'px';
+        lens.style.top = lensY + 'px';
+
+        // Update zoom result background position
+        const percentX = x / wrapperWidth;
+        const percentY = y / wrapperHeight;
+
+        const bgWidth = wrapperWidth * ZOOM_FACTOR;
+        const bgHeight = wrapperHeight * ZOOM_FACTOR;
+
+        zoomResult.style.backgroundImage = `url('${currentImageSrc}')`;
+        zoomResult.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
+        zoomResult.style.backgroundPosition = `${percentX * 100}% ${percentY * 100}%`;
+    }
+
+    // Enable zoom
+    function enableZoom() {
+        isZoomActive = true;
+        wrapper.classList.add('zoom-active');
+        updateZoomBackground();
+    }
+
+    // Disable zoom
+    function disableZoom() {
+        isZoomActive = false;
+        wrapper.classList.remove('zoom-active');
+    }
+
+    // ===== DESKTOP EVENTS =====
+    wrapper.addEventListener('mouseenter', enableZoom);
+
+    wrapper.addEventListener('mousemove', (e) => {
+        if (isZoomActive) {
+            positionLens(e.clientX, e.clientY);
         }
-    );
+    });
+
+    wrapper.addEventListener('mouseleave', disableZoom);
+
+    // ===== MOBILE TOUCH EVENTS =====
+    wrapper.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        enableZoom();
+        const touch = e.touches[0];
+        if (touch) {
+            positionLens(touch.clientX, touch.clientY);
+        }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (isZoomActive) {
+            const touch = e.touches[0];
+            if (touch) {
+                positionLens(touch.clientX, touch.clientY);
+            }
+        }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchend', disableZoom);
+
+    // ===== WINDOW RESIZE =====
+    window.addEventListener('resize', () => {
+        updateLensSize();
+        if (isZoomActive) {
+            updateZoomBackground();
+        }
+    });
+
+    // ===== THUMBNAIL CLICK SYNC =====
+    // When thumbnails are clicked, update the zoom image
+    const thumbnails = document.querySelectorAll('.small-image');
+    thumbnails.forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+            const newSrc = thumb.src;
+            if (newSrc && newSrc !== currentImageSrc) {
+                currentImageSrc = newSrc;
+                image.src = newSrc;
+                if (isZoomActive) {
+                    updateZoomBackground();
+                }
+            }
+        });
+    });
+
+    // ===== WATCH FOR MAIN IMAGE CHANGES =====
+    // Observe image src changes (in case it's changed programmatically)
+    const observer = new MutationObserver(() => {
+        if (image.src !== currentImageSrc) {
+            currentImageSrc = image.src;
+            if (isZoomActive) {
+                updateZoomBackground();
+            }
+        }
+    });
+    observer.observe(image, { attributes: true, attributeFilter: ['src'] });
+
+    // Initialize
+    updateLensSize();
+    console.log('✅ Image Zoom initialized successfully');
 }
 
-// gallery
+// ========================================
+// PRODUCT GALLERY (Thumbnails)
+// ========================================
+
 function initializeProductGallery(
     product
 ) {
@@ -911,7 +1042,10 @@ function initializeProductGallery(
     );
 }
 
-// quantity controls
+// ========================================
+// QUANTITY CONTROLS
+// ========================================
+
 if (
     productElements.plusBtn
 ) {
@@ -950,7 +1084,10 @@ if (
     );
 }
 
-// keyboard accessibility
+// ========================================
+// KEYBOARD ACCESSIBILITY
+// ========================================
+
 document.addEventListener(
     "keydown",
     (
@@ -993,26 +1130,10 @@ document.addEventListener(
     }
 );
 
-// init
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        fetchProduct();
-
-        if (
-            typeof updateCartCount ===
-            "function"
-        ) {
-
-            updateCartCount();
-        }
-    }
-);
-
 // ========================================
-// Back to Top Button (Issue #345)
+// BACK TO TOP BUTTON (Issue #345)
 // ========================================
+
 function initBackToTop() {
     const backToTopBtn = document.getElementById('back-to-top-btn');
     if (!backToTopBtn) return;
@@ -1034,8 +1155,26 @@ function initBackToTop() {
     });
 }
 
-// Initialize after DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    initBackToTop();
-});
+// ========================================
+// INITIALIZATION
+// ========================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        fetchProduct();
+
+        if (
+            typeof updateCartCount ===
+            "function"
+        ) {
+
+            updateCartCount();
+        }
+
+        initBackToTop();
+    }
+);
+
 })();
