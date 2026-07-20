@@ -7,6 +7,10 @@ const {
     "../services/order.service"
 );
 
+const paymentService = require("../services/payment.service");
+const { generateInvoicePdf } = require("../services/invoice.service");
+const inventoryReservationService = require("../services/inventoryReservationService");
+
 const {
     safeNumber,
     safeInteger,
@@ -33,7 +37,8 @@ const createOrder =
                 address,
                 paymentMethod,
                 items,
-                total
+                total,
+                promoCode
             } = req.body;
 
             // validation
@@ -132,9 +137,23 @@ const createOrder =
                         full_address: sanitizeString(address.fullAddress),
                         payment_method: sanitizeString(paymentMethod).toLowerCase(),
                         total: safeNumber(total),
-                        items
+                        items,
+                        promo_code: promoCode ? sanitizeString(promoCode) : null
                     }
                 );
+            
+            // Validate inventory locks
+            const locksValid = await inventoryReservationService.validateCartLocks(req.user.id, items, connection);
+            if (!locksValid) {
+                await connection.rollback();
+                return res.status(400).json({ success: false, message: "Inventory locks expired or insufficient stock" });
+            }
+            
+            // Consume inventory locks
+            await inventoryReservationService.consumeLocks(req.user.id, items, connection);
+
+            // commit transaction
+            await connection.commit();
 
             return res.status(201)
                 .json({
@@ -157,9 +176,7 @@ const createOrder =
             return res.status(500)
                 .json({
                     success: false,
-                    message:
-                        error.message
-                        || "Failed to create order"
+                    message: "Failed to create order"
                 });
         } finally {
             if (connection) {
@@ -264,6 +281,118 @@ const getOrderById = async (req, res) => {
             message: "Invalid order ID"
         });
     }
+};
+
+// shared helper for updating order status and managing inventory
+const performOrderStatusUpdate = async (connection, id, currentStatus, newStatus) => {
+    // if cancelling a previously un-cancelled order, restore stock
+    if (newStatus === "cancelled" && currentStatus !== "cancelled") {
+        const [items] = await connection.query(
+            "SELECT product_id, qty FROM order_items WHERE order_id = ?",
+            [id]
+        );
+
+        for (const item of safeArray(items)) {
+            if (item.product_id) {
+                await connection.query(
+                    "UPDATE products SET stock = stock + ? WHERE id = ?",
+                    [item.qty, item.product_id]
+                );
+            }
+        }
+    }
+
+    // update order status
+    await connection.query(
+        "UPDATE orders SET status = ? WHERE id = ?",
+        [newStatus, id]
+    );
+};
+
+// update order status
+const updateOrderStatus =
+    async (req, res) => {
+        const id = safeUUID(req.params.id);
+        const newStatus = sanitizeString(req.body.status).toLowerCase();
+
+        const validStatuses = [
+            "pending",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled"
+        ];
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: "Invalid order ID" });
+        }
+
+        if (!validStatuses.includes(newStatus)) {
+            return res.status(400).json({ success: false, message: "Invalid order status" });
+        }
+
+        let connection;
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
+            // fetch current order status
+            const [orders] = await connection.query(
+                "SELECT status FROM orders WHERE id = ? FOR UPDATE",
+                [id]
+            );
+
+            if (!safeArray(orders).length) {
+                await connection.rollback();
+                return res.status(404).json({ success: false, message: "Order not found" });
+            }
+
+            const currentStatus = orders[0].status;
+
+            await performOrderStatusUpdate(connection, id, currentStatus, newStatus);
+
+            await connection.commit();
+
+            return res.status(200).json({ success: true, message: "Order status updated" });
+
+        } catch (error) {
+            if (connection) {
+                await connection.rollback();
+            }
+            console.error("UPDATE ORDER STATUS ERROR:", error);
+            return res.status(500).json({ success: false, message: "Server error" });
+        } finally {
+            if (connection) {
+                connection.release();
+            }
+        }
+    };
+
+// cancel user order
+const cancelUserOrder = async (req, res) => {
+    const id = safeUUID(req.params.id);
+
+    if (!id) {
+        return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // fetch current order status and check ownership
+        const [orders] = await connection.query(
+            "SELECT user_id, status FROM orders WHERE id = ? FOR UPDATE",
+            [id]
+        );
+
+        if (!safeArray(orders).length || orders[0].user_id !== req.user.id) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        const currentStatus = orders[0].status;
 
     let query = `
         SELECT *
@@ -298,108 +427,6 @@ const getOrderById = async (req, res) => {
     } catch (err) {
         console.error(err);
         return res.status(500).json({
-            success: false,
-            message: "Server error"
-        });
-    }
-};
-
-// ========================================
-// GET ORDER STATUS (Issue #778)
-// ========================================
-const getOrderStatus = async (req, res) => {
-    const orderId = safeInteger(req.params.id);
-
-    if (!orderId) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid order ID"
-        });
-    }
-
-    try {
-        // Check if order exists and belongs to user
-        let query = `
-            SELECT o.id, o.total, o.created_at, o.status, o.shipping_address,
-                   o.estimated_delivery, o.tracking_number,
-                   o.customer_name, o.customer_email, o.payment_method
-            FROM orders o
-            WHERE o.id = ?
-        `;
-        const queryParams = [orderId];
-
-        if (req.user.role !== "admin") {
-            query += ` AND o.user_id = ?`;
-            queryParams.push(req.user.id);
-        }
-
-        const [orderRows] = await db.query(query, queryParams);
-
-        if (!safeArray(orderRows).length) {
-            return res.status(404).json({
-                success: false,
-                message: "Order not found"
-            });
-        }
-
-        const order = orderRows[0];
-
-        // Get order items
-        const [items] = await db.query(
-            `SELECT product_name, quantity, price
-             FROM order_items
-             WHERE order_id = ?`,
-            [orderId]
-        );
-
-        // Status timeline
-        const statuses = ['pending', 'processing', 'shipped', 'delivered'];
-        const currentStatusIndex = statuses.indexOf(order.status.toLowerCase());
-        const timeline = statuses.map((status, index) => ({
-            status: status,
-            completed: index <= currentStatusIndex,
-            active: index === currentStatusIndex,
-            label: status.charAt(0).toUpperCase() + status.slice(1),
-            date: index === currentStatusIndex ? order.created_at : null
-        }));
-
-        // Check if each status has a timestamp
-        // For now, we'll use created_at as the date for all completed statuses
-        // In real scenario, you'd have separate columns for each status timestamp
-        const statusTimestamps = {
-            pending: order.created_at,
-            processing: order.processing_at || (currentStatusIndex >= 1 ? order.created_at : null),
-            shipped: order.shipped_at || (currentStatusIndex >= 2 ? order.created_at : null),
-            delivered: order.delivered_at || (currentStatusIndex >= 3 ? order.created_at : null)
-        };
-
-        res.json({
-            success: true,
-            data: {
-                id: order.id,
-                total: order.total,
-                created_at: order.created_at,
-                status: order.status,
-                shipping_address: order.shipping_address || 'Not available',
-                estimated_delivery: order.estimated_delivery || 'Not available',
-                tracking_number: order.tracking_number || 'Not available',
-                customer_name: order.customer_name,
-                customer_email: order.customer_email,
-                payment_method: order.payment_method,
-                items: safeArray(items).map(item => ({
-                    product_name: item.product_name,
-                    quantity: item.quantity,
-                    price: item.price
-                })),
-                timeline: timeline.map(t => ({
-                    ...t,
-                    date: statusTimestamps[t.status] || null
-                }))
-            }
-        });
-    } catch (error) {
-        console.error("Get order status error:", error);
-        res.status(500).json({
             success: false,
             message: "Server error"
         });
@@ -542,12 +569,180 @@ const cancelUserOrder = async (req, res) => {
     }
 };
 
+const validateOrder = (req, res) => {
+    const { validateOrderDataService } = require("../services/order.service");
+    const result = validateOrderDataService(req.body);
+    if (!result.isValid) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            errors: result.errors
+        });
+    } catch (error) {
+        console.error("GET ORDER SUMMARY ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+    return res.status(200).json({
+        success: true,
+        message: "Validation successful"
+    });
+};
+
+const getOrderSummary = async (req, res) => {
+    const id = safeInteger(req.params.id);
+    if (!id) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid order ID"
+        });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
+    }
+
+    try {
+        const { getOrderSummaryById } = require("../services/order.service");
+        const summary = await getOrderSummaryById(db, id);
+        if (!summary) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found"
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            summary
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
     getUserOrders,
     getOrderById,
-    getOrderStatus,
     updateOrderStatus,
-    cancelUserOrder
+    cancelUserOrder,
+    validateOrder,
+    getOrderSummary,
+    downloadInvoice
 };
+
+// download invoice
+const downloadInvoice = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        
+        // Fetch order details
+        const [orders] = await db.query("SELECT * FROM orders WHERE id = ?", [orderId]);
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+        const order = orders[0];
+
+        // Authorization: Ensure user is admin or the order belongs to them
+        if (req.user && req.user.role !== 'admin' && order.user_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: "Unauthorized access to order" });
+        }
+
+        // Fetch order items
+        const [items] = await db.query("SELECT * FROM order_items WHERE order_id = ?", [orderId]);
+
+        // Generate PDF
+        const pdfBuffer = await generateInvoicePdf(order, items);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="invoice-${orderId}.pdf"`);
+        return res.status(200).send(pdfBuffer);
+    } catch (error) {
+        console.error("Error generating invoice:", error);
+        return res.status(500).json({ success: false, message: "Failed to generate invoice" });
+    }
+};
+
+// create payment intent
+const createPaymentIntent = async (req, res) => {
+    let connection;
+    try {
+        connection = await db.getConnection();
+
+        const { customer, address, items, total, promoCode } = req.body;
+
+        if (!customer || !customer.name || !customer.email) {
+            return res.status(400).json({ success: false, message: "Customer information required" });
+        }
+        if (!address || !address.fullAddress) {
+            return res.status(400).json({ success: false, message: "Delivery address required" });
+        }
+        if (!Array.isArray(items) || !items.length) {
+            return res.status(400).json({ success: false, message: "Order items required" });
+        }
+        if (safeNumber(total) <= 0) {
+            return res.status(400).json({ success: false, message: "Invalid order total" });
+        }
+
+        await connection.beginTransaction();
+
+        const result = await createOrderService(connection, {
+            user_id: req.user.id,
+            customer_name: sanitizeString(customer.name),
+            customer_email: sanitizeString(customer.email),
+            customer_phone: sanitizeString(customer.phone),
+            city: sanitizeString(address.city),
+            state: sanitizeString(address.state),
+            zip: sanitizeString(address.zip),
+            full_address: sanitizeString(address.fullAddress),
+            payment_method: 'card',
+            total: safeNumber(total),
+            items,
+            promo_code: promoCode ? sanitizeString(promoCode) : null
+        });
+
+        const locksValid = await inventoryReservationService.validateCartLocks(req.user.id, items, connection);
+        if (!locksValid) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "Inventory locks expired or insufficient stock" });
+        }
+        
+        await inventoryReservationService.consumeLocks(req.user.id, items, connection);
+
+        const [orders] = await connection.query("SELECT final_amount, total FROM orders WHERE id = ?", [result.orderId]);
+        const orderTotal = orders[0].final_amount || orders[0].total;
+
+        const paymentIntentResult = await paymentService.createPaymentIntent(orderTotal, 'usd', { orderId: result.orderId, userId: req.user.id });
+        if (!paymentIntentResult.success) {
+            await connection.rollback();
+            return res.status(500).json({ success: false, message: paymentIntentResult.error });
+        }
+
+        await connection.query("UPDATE orders SET payment_intent_id = ? WHERE id = ?", [paymentIntentResult.paymentIntentId, result.orderId]);
+
+        await connection.commit();
+
+        return res.status(201).json({
+            success: true,
+            clientSecret: paymentIntentResult.clientSecret,
+            orderId: result.orderId
+        });
+
+    } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
+        console.error("CREATE PAYMENT INTENT ERROR:", error);
+        return res.status(500).json({ success: false, message: "Failed to create payment intent" });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
+    }
+};
+
+module.exports.createPaymentIntent = createPaymentIntent;

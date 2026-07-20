@@ -1,160 +1,357 @@
-const express =
-    require("express");
+// routes/orderRoutes.js
+const express = require("express");
+const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
+const { authorizeRoles } = require("../middleware/rbacMiddleware");
+const orderController = require("../controllers/orderController");
+const { safeArray, safeNumber, sanitizeString } = require("../utils/helpers");
 
-const router =
-    express.Router();
+// ============================================
+// CONSTANTS
+// ============================================
 
-const authMiddleware =
-    require(
-        "../middleware/authMiddleware"
-    );
+const ALLOWED_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+const ALLOWED_PAYMENT_METHODS = ["card", "cod", "upi", "paypal"];
+const MAX_ITEMS = 50;
+const MAX_TOTAL = 1000000; // ₹10 Lakhs
+const MAX_REASON_LENGTH = 500;
+const MAX_PAGE = 100;
+const MAX_LIMIT = 100;
 
-const {
-    authorizeRoles
-} = authMiddleware;
+// ============================================
+// VALIDATION FUNCTIONS
+// ============================================
 
-const orderController =
-    require(
-        "../controllers/orderController"
-    );
+/**
+ * Validate order ID
+ */
+function validateOrderId(id) {
+    const parsedId = parseInt(id, 10);
+    if (!parsedId || parsedId < 1) {
+        throw new Error('Invalid order ID');
+    }
+    return parsedId;
+}
 
-const {
-    safeArray,
-    safeNumber,
-    sanitizeString
-} = require(
-    "../utils/helpers"
-);
+/**
+ * Validate items array
+ */
+function validateItems(items) {
+    const errors = [];
 
-// validate order id
-router.param(
-    "id",
-    (
-        req,
-        res,
-        next,
-        id
-    ) => {
+    if (!Array.isArray(items) || items.length === 0) {
+        errors.push('Order items are required and must be a non-empty array');
+        return { valid: false, errors };
+    }
 
-        const parsedId =
-            parseInt(
-                id,
-                10
-            );
+    if (items.length > MAX_ITEMS) {
+        errors.push(`Order items cannot exceed ${MAX_ITEMS} items`);
+    }
 
-        if (
-            !parsedId
-            || parsedId < 1
-        ) {
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const index = i + 1;
 
-            return res.status(400)
-                .json({
-
-                    success: false,
-
-                    message:
-                        "Invalid order ID"
-                });
+        if (!item.productId || typeof item.productId !== 'string') {
+            errors.push(`Item ${index}: productId is required and must be a string`);
         }
 
-        req.orderId =
-            parsedId;
+        if (!item.quantity || typeof item.quantity !== 'number' || item.quantity < 1 || item.quantity > 100) {
+            errors.push(`Item ${index}: quantity must be between 1 and 100`);
+        }
 
+        if (!item.price || typeof item.price !== 'number' || item.price < 0) {
+            errors.push(`Item ${index}: price must be a positive number`);
+        }
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Validate total amount
+ */
+function validateTotal(total) {
+    const errors = [];
+
+    if (typeof total !== 'number' || total <= 0) {
+        errors.push('Total must be a positive number');
+    }
+
+    if (total > MAX_TOTAL) {
+        errors.push(`Total cannot exceed ₹${MAX_TOTAL.toLocaleString()}`);
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Validate payment method
+ */
+function validatePaymentMethod(method) {
+    const errors = [];
+
+    if (!method || typeof method !== 'string') {
+        errors.push('Payment method is required');
+    } else {
+        const sanitized = method.trim().toLowerCase();
+        if (!ALLOWED_PAYMENT_METHODS.includes(sanitized)) {
+            errors.push(`Payment method must be one of: ${ALLOWED_PAYMENT_METHODS.join(', ')}`);
+        }
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Validate status
+ */
+function validateStatus(status) {
+    const errors = [];
+
+    if (!status || typeof status !== 'string') {
+        errors.push('Status is required');
+    } else {
+        const sanitized = status.trim().toLowerCase();
+        if (!ALLOWED_STATUSES.includes(sanitized)) {
+            errors.push(`Status must be one of: ${ALLOWED_STATUSES.join(', ')}`);
+        }
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Validate reason length
+ */
+function validateReason(reason) {
+    const errors = [];
+
+    if (reason && typeof reason === 'string' && reason.length > MAX_REASON_LENGTH) {
+        errors.push(`Reason cannot exceed ${MAX_REASON_LENGTH} characters`);
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Validate pagination
+ */
+function validatePagination(page, limit) {
+    const errors = [];
+
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+
+    if (page && (isNaN(parsedPage) || parsedPage < 1 || parsedPage > MAX_PAGE)) {
+        errors.push(`Page must be between 1 and ${MAX_PAGE}`);
+    }
+
+    if (limit && (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > MAX_LIMIT)) {
+        errors.push(`Limit must be between 1 and ${MAX_LIMIT}`);
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors,
+        page: parsedPage || 1,
+        limit: parsedLimit || 20
+    };
+}
+
+/**
+ * Validate date format
+ */
+function validateDate(dateStr) {
+    if (!dateStr) return { valid: true };
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+        return {
+            valid: false,
+            error: 'Invalid date format. Use YYYY-MM-DD or ISO format'
+        };
+    }
+    return { valid: true };
+}
+
+/**
+ * Validate order IDs for bulk operations
+ */
+function validateOrderIds(orderIds) {
+    const errors = [];
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+        errors.push('Order IDs are required and must be a non-empty array');
+        return { valid: false, errors };
+    }
+
+    for (let i = 0; i < orderIds.length; i++) {
+        const id = parseInt(orderIds[i], 10);
+        if (isNaN(id) || id < 1) {
+            errors.push(`Order ID at index ${i} is invalid`);
+        }
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+// ============================================
+// ROUTE HANDLERS
+// ============================================
+
+// Validate order ID parameter
+router.param("id", (req, res, next, id) => {
+    try {
+        req.orderId = validateOrderId(id);
         next();
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
-);
+});
 
-// order api status
-router.get(
-    "/status/check",
-    (
-        req,
-        res
-    ) => {
+// Order API status
+router.get("/status/check", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Order API running"
+    });
+});
 
-        res.status(200)
-            .json({
+// ==================== PUBLIC ENDPOINTS ====================
 
-                success: true,
+// Validate order data before submission
+router.post("/validate", orderController.validateOrder);
 
-                message:
-                    "Order API running"
-            });
+// ==================== USER ENDPOINTS ====================
+
+// Create payment intent
+router.post("/create-payment-intent", authMiddleware, orderController.createPaymentIntent);
+
+// Create order
+router.post("/", authMiddleware, (req, res, next) => {
+    const { items, total, paymentMethod } = req.body;
+
+    // Validate items
+    const itemsValidation = validateItems(items);
+    if (!itemsValidation.valid) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: itemsValidation.errors
+        });
     }
-);
 
-// create order
-router.post(
-    "/",
-    authMiddleware,
-    (
-        req,
-        res,
-        next
-    ) => {
+    // Validate total
+    const totalValidation = validateTotal(total);
+    if (!totalValidation.valid) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: totalValidation.errors
+        });
+    }
 
-        const {
-            items,
-            total,
-            paymentMethod
-        } = req.body;
+    // Validate payment method
+    const paymentValidation = validatePaymentMethod(paymentMethod);
+    if (!paymentValidation.valid) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: paymentValidation.errors
+        });
+    }
 
-        // validate items
-        if (
-            !safeArray(items).length
-        ) {
+    next();
+}, orderController.createOrder);
 
-            return res.status(400)
-                .json({
+// Get current user orders with pagination and filtering
+router.get("/my-orders", authMiddleware, (req, res, next) => {
+    const errors = [];
 
-                    success: false,
-
-                    message:
-                        "Order items are required"
-                });
+    // Validate status filter
+    if (req.query.status) {
+        const statusValidation = validateStatus(req.query.status);
+        if (!statusValidation.valid) {
+            errors.push(...statusValidation.errors);
         }
+    }
 
-        // validate total
-        if (
-            safeNumber(total) <= 0
-        ) {
+    // Validate pagination
+    const paginationValidation = validatePagination(req.query.page, req.query.limit);
+    if (!paginationValidation.valid) {
+        errors.push(...paginationValidation.errors);
+    }
 
-            return res.status(400)
-                .json({
+    if (errors.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: errors
+        });
+    }
 
-                    success: false,
+    req.pagination = {
+        page: paginationValidation.page,
+        limit: paginationValidation.limit
+    };
 
-                    message:
-                        "Invalid order total"
-                });
-        }
+    next();
+}, orderController.getUserOrders);
 
-        // validate payment method
-        const allowedPayments = [
+// Get order summary
+router.get("/:id/summary", authMiddleware, orderController.getOrderSummary);
 
-            "card",
+// Get single order with items
+router.get("/:id", authMiddleware, orderController.getOrderById);
 
-            "cod",
+// Download order invoice
+router.get("/:id/invoice", authMiddleware, orderController.downloadInvoice);
 
-            "upi"
-        ];
+// Cancel order with reason
+router.patch("/:id/cancel", authMiddleware, (req, res, next) => {
+    const reasonValidation = validateReason(req.body.reason);
+    if (!reasonValidation.valid) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            details: reasonValidation.errors
+        });
+    }
+    next();
+}, orderController.cancelUserOrder);
 
-        if (
-            !allowedPayments.includes(
-                sanitizeString(
-                    paymentMethod
-                ).toLowerCase()
-            )
-        ) {
+// ==================== ADMIN ENDPOINTS ====================
 
-            return res.status(400)
-                .json({
+// Export orders as CSV
+router.get("/export/csv", authMiddleware, authorizeRoles("admin", "support"), (req, res, next) => {
+    const errors = [];
 
-                    success: false,
-
-                    message:
-                        "Invalid payment method"
-                });
+    // Validate status filter
+    if (req.query.status) {
+        const statusValidation = validateStatus(req.query.status);
+        if (!statusValidation.valid) {
+            errors.push(...statusValidation.errors);
         }
 
         next();
@@ -243,35 +440,51 @@ router.put(
                 });
         }
 
-        next();
-    },
-    orderController.updateOrderStatus
-);
-
-// cancel order (user)
-router.patch(
-    "/:id/cancel",
-    authMiddleware,
-    orderController.cancelUserOrder
-);
-
-// route fallback
-router.use(
-    (
-        req,
-        res
-    ) => {
-
-        res.status(404)
-            .json({
-
+        // Validate status
+        const statusValidation = validateStatus(status);
+        if (!statusValidation.valid) {
+            return res.status(400).json({
                 success: false,
-
-                message:
-                    "Order route not found"
+                message: "Validation failed",
+                details: statusValidation.errors
             });
-    }
-);
+        }
 
-module.exports =
-    router;
+        const results = [];
+        for (const orderId of orderIds) {
+            try {
+                const result = await orderController.updateOrderStatusService(
+                    orderId,
+                    status,
+                    req.user.id
+                );
+                results.push({ orderId, success: true, result });
+            } catch (error) {
+                results.push({ orderId, success: false, error: error.message });
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Bulk status update completed",
+            results
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// ==================== 404 FALLBACK ====================
+
+router.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "Order route not found"
+    });
+});
+
+module.exports = router;
