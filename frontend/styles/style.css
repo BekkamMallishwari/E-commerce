@@ -241,6 +241,19 @@
     margin: 0;
 }
 
+body.dark-theme .section-header-card {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.dark-theme .section-header-card h2 {
+    color: #f8fafc;
+}
+
+body.dark-theme .section-header-card p {
+    color: #e2e8f0;
+}
+
 /* New Arrivals */
 .arrivals-card {
     background: linear-gradient(
@@ -249,6 +262,11 @@
         #ffe8d9
     );
     border-left: 8px solid #f4a261;
+}
+
+body.dark-theme .arrivals-card {
+    background: linear-gradient(135deg, #3a2316, #5f3720);
+    border-left-color: #ffb36b;
 }
 
 /* Recently Viewed */
@@ -261,6 +279,11 @@
     border-left: 8px solid #6ab7a8;
 }
 
+body.dark-theme .recent-card {
+    background: linear-gradient(135deg, #12362d, #215845);
+    border-left-color: #7fd9c7;
+}
+
 /* Recommended */
 .recommended-card {
     background: linear-gradient(
@@ -269,6 +292,11 @@
         #ebe5ff
     );
     border-left: 8px solid #9b8cff;
+}
+
+body.dark-theme .recommended-card {
+    background: linear-gradient(135deg, #22163f, #3a2a69);
+    border-left-color: #c7b7ff;
 }
 
 /* Mobile */
