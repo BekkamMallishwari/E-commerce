@@ -43,6 +43,7 @@ const RETRY_CONFIG = {
 
 let pool = null;
 let promisePool = null;
+let originalQuery = null;
 let dbConnected = false;
 let isShuttingDown = false;
 let pendingQueries = 0;
@@ -55,6 +56,8 @@ let connectionAttempts = 0;
 function createPool() {
   pool = mysql.createPool(DB_CONFIG);
   promisePool = pool.promise();
+  promisePool.promise = promisePool;
+  originalQuery = promisePool.query.bind(promisePool);
   return { pool, promisePool };
 }
 
@@ -309,7 +312,7 @@ async function query(sql, params = []) {
   pendingQueries++;
   
   try {
-    const [results] = await promisePool.query(sql, params);
+    const [results] = await originalQuery(sql, params);
     logQuery(sql, params, startTime);
     return [results, null];
   } catch (error) {
@@ -481,6 +484,7 @@ async function initializeDatabase() {
 }
 
 module.exports = promisePool;
+module.exports.promise = promisePool;
 module.exports.rawPool = pool;
 module.exports.isConnected = () => dbConnected;
 module.exports.query = query;
@@ -501,13 +505,17 @@ module.exports.RETRY_CONFIG = RETRY_CONFIG;
 process.on('uncaughtException', async (error) => {
   logger.error(`Uncaught exception: ${error.message}`);
   logger.error(error.stack);
-  await shutdown();
+  if (process.env.NODE_ENV === 'production') {
+    await shutdown();
+  }
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
   logger.error('Unhandled rejection:');
   logger.error(reason);
-  await shutdown();
+  if (process.env.NODE_ENV === 'production') {
+    await shutdown();
+  }
 });
 
 if (process.env.NODE_ENV !== 'test') {

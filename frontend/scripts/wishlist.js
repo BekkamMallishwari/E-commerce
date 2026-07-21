@@ -296,6 +296,9 @@ async function addToCartFromWishlist(
         qty: 1
     };
 
+    // addCartItem now routes signed-in users through the backend cart
+    // (including the inventory reservation), so no separate /cart/add call is
+    // needed here — a manual one previously sent the wrong payload shape.
     cart =
         AppUtils.addCartItem(
             item
@@ -306,31 +309,6 @@ async function addToCartFromWishlist(
         "success"
     );
 
-    const token =
-        AppUtils.getToken();
-
-    if (
-        token
-    ) {
-        try {
-            await AppUtils.apiRequest(
-                "/cart/add",
-                {
-                    method: "POST",
-                    body:
-                        JSON.stringify(
-                            item
-                        )
-                }
-            );
-        } catch (error) {
-            console.error(
-                "CART ADD ERROR:",
-                error
-            );
-        }
-    }
-    
     // Remove from wishlist
     await removeWishlist(index);
 }

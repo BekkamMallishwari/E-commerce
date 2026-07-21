@@ -394,31 +394,51 @@ function renderCheckout() {
 
 renderCheckout();
 
-// PAYMENT METHOD TOGGLE
-elements.paymentMethods.forEach(
-    (
-        method
-    ) => {
-
-        method.addEventListener(
-            "change",
-            () => {
-
-                if (
-                    !elements.cardDetails
-                ) {
-                    return;
+// STRIPE SETUP
+let stripe, elementsStripe, cardElement;
+try {
+    stripe = Stripe('pk_test_TYooMQauvdEDq54NiTphI7jx'); // Placeholder key
+    elementsStripe = stripe.elements();
+    cardElement = elementsStripe.create('card', {
+        style: {
+            base: {
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                    color: '#aab7c4'
                 }
-
-                elements.cardDetails.style.display =
-                    method.value ===
-                    "Card"
-                        ? "block"
-                        : "none";
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
             }
-        );
+        }
+    });
+    
+    if (elements.cardDetails) {
+        cardElement.mount('#card-element');
+        cardElement.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
     }
-);
+} catch(e) {
+    console.error("Stripe initialization failed", e);
+}
+
+// PAYMENT METHOD TOGGLE
+elements.paymentMethods.forEach((method) => {
+    method.addEventListener("change", () => {
+        if (!elements.cardDetails) return;
+        elements.cardDetails.style.display = method.value === "card" ? "block" : "none";
+    });
+});
 
 function validateCheckoutForm() {
 
@@ -608,38 +628,57 @@ if (
                     "Processing...";
             }
 
-            const order =
-                createOrderPayload();
+            const order = createOrderPayload();
+            const selectedPaymentMethod = order.paymentMethod;
 
             try {
+                if (selectedPaymentMethod === "card") {
+                    // 1. Create Payment Intent
+                    const intentRes = await AppUtils.apiRequest("/orders/create-payment-intent", {
+                        method: "POST",
+                        body: JSON.stringify(order)
+                    });
 
-                const data =
-                    await AppUtils.apiRequest(
-                        "/orders",
-                        {
-                            method: "POST",
-                            body:
-                                JSON.stringify(
-                                    order
-                                )
+                    if (!intentRes.success) {
+                        throw new Error(intentRes.message || "Failed to initialize payment");
+                    }
+
+                    // 2. Confirm Card Payment with Stripe
+                    const { error, paymentIntent } = await stripe.confirmCardPayment(intentRes.clientSecret, {
+                        payment_method: {
+                            card: cardElement,
+                            billing_details: {
+                                name: order.customer.name,
+                                email: order.customer.email
+                            }
                         }
-                    );
+                    });
 
-                if (
-                    data.success
-                ) {
+                    if (error) {
+                        // Display error in #card-errors
+                        const displayError = document.getElementById('card-errors');
+                        displayError.textContent = error.message;
+                        throw new Error(error.message);
+                    } else if (paymentIntent.status === 'succeeded') {
+                        AppUtils.notify("Payment successful! Order placed. 🎉", "success");
+                    }
+                } else {
+                    // Fallback for COD/UPI
+                    const data = await AppUtils.apiRequest("/orders", {
+                        method: "POST",
+                        body: JSON.stringify(order)
+                    });
 
-                    AppUtils.notify(
-                        "Order placed successfully! 🎉",
-                        "success"
-                    );
+                    if (!data.success) {
+                        throw new Error(data.message || "Failed to place order");
+                    }
+                    
+                    AppUtils.notify("Order placed successfully! 🎉", "success");
+                }
 
-                    // clear cart
-                    AppUtils.clearCart();
-
-                    AppUtils.removeStorage(
-                        "appliedCoupon"
-                    );
+                // clear cart
+                AppUtils.clearCart();
+                AppUtils.removeStorage("appliedCoupon");
 
                     // update ui
                     if (

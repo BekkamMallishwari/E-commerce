@@ -1,5 +1,5 @@
 const Negotiation = require('../models/Negotiation');
-const AuditTrailService = require('../services/auditTrailService');
+const AuditTrailService = require('../services/auditTrialService');
 const CertificateService = require('../services/certificateService');
 const ComplianceService = require('../services/complianceService');
 

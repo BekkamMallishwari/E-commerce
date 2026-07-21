@@ -8,10 +8,15 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const db = require("../config/db");
 const { sanitizeString, safeArray } = require("../utils/helpers");
-const cookieOptions = require("../config/cookieOptions");
+const { getClearCookieOptions } = require("../config/cookieConfig");
 
 // Appwrite SDK
 const { Client, Account, ID, Databases } = require('node-appwrite');
+
+// 2FA dependencies
+const { authenticator } = require('otplib');
+const qrcode = require('qrcode');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 // ==================== CONSTANTS ====================
 const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
@@ -320,6 +325,21 @@ const login = async (req, res) => {
         // Reset login attempts on success
         resetLoginAttempts(cleanEmail);
 
+        // Check if 2FA is enabled
+        if (user.is_2fa_enabled === 1) {
+            const tempToken = jwt.sign(
+                { id: user.id, email: user.email, role: user.role, is2FA: true },
+                process.env.JWT_SECRET,
+                { expiresIn: "5m" }
+            );
+            return res.status(200).json({
+                success: true,
+                requires2FA: true,
+                tempToken,
+                message: "2FA verification required"
+            });
+        }
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken();
 
@@ -353,9 +373,9 @@ const logout = async (req, res) => {
             );
         }
 
-        // Clear cookies using shared cookieOptions
-        res.clearCookie('accessToken', cookieOptions);
-        res.clearCookie('refreshToken', cookieOptions);
+        // Clear cookies using shared cookie options
+        res.clearCookie('accessToken', getClearCookieOptions());
+        res.clearCookie('refreshToken', getClearCookieOptions('/api/auth/refresh'));
 
         console.log(`🔓 User ${userId} logged out successfully`);
 
@@ -672,6 +692,47 @@ const getFraudStatus = async (req, res) => {
     }
 };
 
+const getMe = async (req, res) => {
+    try {
+        const [users] = await db.query(
+            "SELECT id, name, email, role, is_active FROM users WHERE id = ? LIMIT 1",
+            [req.user.id]
+        );
+
+        if (!users || !users.length) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const user = users[0];
+
+        if (user.is_active === 0) {
+            return res.status(403).json({
+                success: false,
+                message: "Account has been deactivated"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("GET ME ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
 
 // ==================== EXPORTS ====================
 module.exports = {
@@ -686,5 +747,6 @@ module.exports = {
     getStatus,      
     validateToken,  
     getSecurityAudit, 
-    getFraudStatus
+    getFraudStatus,
+    getMe
 };

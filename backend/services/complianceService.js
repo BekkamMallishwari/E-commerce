@@ -1,6 +1,6 @@
 const ComplianceRecord = require('../models/ComplianceRecord');
 const Negotiation = require('../models/Negotiation');
-const AuditTrailService = require('./auditTrailService');
+const AuditTrailService = require('./auditTrialService');
 
 class ComplianceService {
     constructor() {

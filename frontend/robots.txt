@@ -135,4 +135,4 @@ Crawl-delay: 0.5
 # SITEMAP LOCATION
 # ============================================
 
-Sitemap: https://www.bhuvansh.xyz/sitemap.xml
+Sitemap: https://e-commerce-git-main-bhuvanshs-projects.vercel.app/sitemap.xml

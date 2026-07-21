@@ -10,11 +10,11 @@
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id CHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('customer', 'support', 'admin', 'seller') DEFAULT 'customer',
+    `role` ENUM('customer', 'support', 'admin', 'seller') DEFAULT 'customer',
     refresh_token VARCHAR(255),
     avatar VARCHAR(500),
     phone VARCHAR(20),
@@ -30,15 +30,15 @@ CREATE TABLE IF NOT EXISTS users (
     login_count INT DEFAULT 0,
     failed_login_attempts INT DEFAULT 0,
     locked_until DATETIME,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_users_email (email),
-    INDEX idx_users_role (role),
+    INDEX idx_users_role (`role`),
     INDEX idx_users_is_active (is_active),
     INDEX idx_users_deleted_at (deleted_at),
     INDEX idx_users_last_login (last_login),
@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS categories (
     path VARCHAR(500),
     is_active TINYINT(1) DEFAULT 1,
     display_order INT DEFAULT 0,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -82,8 +82,8 @@ CREATE TABLE IF NOT EXISTS categories (
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    seller_id INT,
+    id CHAR(36) PRIMARY KEY,
+    seller_id CHAR(36),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     short_description VARCHAR(500),
@@ -113,9 +113,9 @@ CREATE TABLE IF NOT EXISTS products (
     is_active TINYINT(1) DEFAULT 1,
     views_count INT DEFAULT 0,
     sold_count INT DEFAULT 0,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_featured_status (featured, status),
     
     -- Partial index for active products
-    INDEX idx_active_products (status, price) WHERE status = 'active' AND deleted_at IS NULL,
+    INDEX idx_active_products (status, price, deleted_at),
     
     -- Full-text search indexes
     FULLTEXT INDEX ft_product_search (name, description, short_description, meta_keywords),
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS product_variants (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
+    product_id CHAR(36) NOT NULL,
     sku VARCHAR(100) UNIQUE,
     attributes JSON NOT NULL,
     price DECIMAL(10,2),
@@ -173,9 +173,9 @@ CREATE TABLE IF NOT EXISTS product_variants (
     weight DECIMAL(10,2),
     image VARCHAR(500),
     is_active TINYINT(1) DEFAULT 1,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -192,8 +192,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS orders (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36),
     order_number VARCHAR(50) UNIQUE,
     customer_name VARCHAR(255) NOT NULL,
     customer_email VARCHAR(255) NOT NULL,
@@ -206,6 +206,8 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_address JSON NOT NULL,
     payment_method VARCHAR(50),
     payment_status ENUM('pending', 'paid', 'failed', 'refunded', 'partially_refunded') DEFAULT 'pending',
+    payment_intent_id VARCHAR(255),
+    transaction_id VARCHAR(255),
     shipping_method VARCHAR(50),
     shipping_cost DECIMAL(10,2) DEFAULT 0,
     tax DECIMAL(10,2) DEFAULT 0,
@@ -223,9 +225,9 @@ CREATE TABLE IF NOT EXISTS orders (
     refunded_at DATETIME,
     ip_address VARCHAR(45),
     user_agent TEXT,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -252,12 +254,12 @@ CREATE TABLE IF NOT EXISTS orders (
     INDEX idx_user_status (user_id, status),
     INDEX idx_payment_status_created (payment_status, created_at),
     INDEX idx_status_updated (status, updated_at),
-    INDEX idx_shipping_date (shipping_date) WHERE status = 'shipped',
+    INDEX idx_shipping_date (status, shipping_date),
     
     -- JSON indexes for shipping address
-    INDEX idx_shipping_city ((shipping_address->>'$.city')),
-    INDEX idx_shipping_state ((shipping_address->>'$.state')),
-    INDEX idx_shipping_country ((shipping_address->>'$.country'))
+    INDEX idx_shipping_city ((CAST(shipping_address->>'$.city' AS CHAR(100)))),
+    INDEX idx_shipping_state ((CAST(shipping_address->>'$.state' AS CHAR(100)))),
+    INDEX idx_shipping_country ((CAST(shipping_address->>'$.country' AS CHAR(100))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -266,8 +268,8 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE TABLE IF NOT EXISTS order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
-    product_id INT,
+    order_id CHAR(36) NOT NULL,
+    product_id CHAR(36),
     variant_id INT,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
@@ -281,9 +283,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     total DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_price CHECK (price >= 0),
+    CONSTRAINT chk_order_items_price CHECK (price >= 0),
     CONSTRAINT chk_qty CHECK (qty > 0),
-    CONSTRAINT chk_total CHECK (total >= 0),
+    CONSTRAINT chk_order_items_total CHECK (total >= 0),
     
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
@@ -300,9 +302,9 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 CREATE TABLE IF NOT EXISTS inventory_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
+    product_id CHAR(36) NOT NULL,
     variant_id INT,
-    order_id INT,
+    order_id CHAR(36),
     quantity_change INT NOT NULL,
     previous_quantity INT NOT NULL,
     new_quantity INT NOT NULL,
@@ -310,7 +312,7 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
     notes TEXT,
     reference_type VARCHAR(50),
     reference_id INT,
-    created_by INT,
+    created_by CHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
@@ -328,14 +330,14 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
 
 CREATE TABLE IF NOT EXISTS inventory_alerts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
+    product_id CHAR(36) NOT NULL,
     variant_id INT,
     threshold INT NOT NULL,
     current_stock INT NOT NULL,
     alert_type ENUM('low_stock', 'out_of_stock', 'excess_stock') DEFAULT 'low_stock',
     status ENUM('pending', 'resolved', 'dismissed') DEFAULT 'pending',
     resolved_at DATETIME,
-    resolved_by INT,
+    resolved_by CHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
@@ -355,7 +357,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
     type ENUM('percentage', 'fixed', 'free_shipping') NOT NULL,
-    value DECIMAL(10,2) NOT NULL,
+    `value` DECIMAL(10,2) NOT NULL,
     minimum_order_amount DECIMAL(10,2),
     maximum_discount_amount DECIMAL(10,2),
     usage_limit INT,
@@ -371,14 +373,14 @@ CREATE TABLE IF NOT EXISTS coupons (
     description TEXT,
     terms_conditions TEXT,
     used_count INT DEFAULT 0,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_value CHECK (value >= 0),
+    CONSTRAINT chk_value CHECK (`value` >= 0),
     CONSTRAINT chk_min_order CHECK (minimum_order_amount >= 0 OR minimum_order_amount IS NULL),
     CONSTRAINT chk_max_discount CHECK (maximum_discount_amount >= 0 OR maximum_discount_amount IS NULL),
     CONSTRAINT chk_usage_limit CHECK (usage_limit >= 0 OR usage_limit IS NULL),
@@ -395,8 +397,8 @@ CREATE TABLE IF NOT EXISTS coupons (
 CREATE TABLE IF NOT EXISTS coupon_usage (
     id INT AUTO_INCREMENT PRIMARY KEY,
     coupon_id INT NOT NULL,
-    user_id INT NOT NULL,
-    order_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
+    order_id CHAR(36) NOT NULL,
     discount_amount DECIMAL(10,2) NOT NULL,
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ip_address VARCHAR(45),
@@ -417,7 +419,7 @@ CREATE TABLE IF NOT EXISTS coupon_usage (
 
 CREATE TABLE IF NOT EXISTS shipments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
+    order_id CHAR(36) NOT NULL,
     tracking_number VARCHAR(100) UNIQUE,
     carrier VARCHAR(100),
     shipping_method VARCHAR(100),
@@ -429,9 +431,9 @@ CREATE TABLE IF NOT EXISTS shipments (
     weight DECIMAL(10,2),
     dimensions JSON,
     shipping_cost DECIMAL(10,2),
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -459,12 +461,12 @@ CREATE TABLE IF NOT EXISTS shipment_tracking (
     carrier_status_code VARCHAR(50),
     estimated_delivery DATE,
     is_delivered TINYINT(1) DEFAULT 0,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE,
     
     INDEX idx_shipment_tracking_shipment (shipment_id),
-    INDEX idx_shipment_tracking_timestamp (timestamp),
+    INDEX idx_shipment_tracking_timestamp (`timestamp`),
     INDEX idx_shipment_tracking_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -491,7 +493,7 @@ CREATE TABLE IF NOT EXISTS courier_webhooks (
 
 CREATE TABLE IF NOT EXISTS payment_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
+    order_id CHAR(36) NOT NULL,
     transaction_id VARCHAR(100) UNIQUE NOT NULL,
     payment_gateway VARCHAR(50) NOT NULL,
     gateway_transaction_id VARCHAR(100),
@@ -507,8 +509,8 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
     error_code VARCHAR(50),
     error_message TEXT,
     retry_count INT DEFAULT 0,
-    created_by INT,
-    updated_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -539,7 +541,7 @@ CREATE TABLE IF NOT EXISTS payment_retry_logs (
 
 CREATE TABLE IF NOT EXISTS refunds (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
+    order_id CHAR(36) NOT NULL,
     payment_transaction_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     reason VARCHAR(255),
@@ -548,7 +550,7 @@ CREATE TABLE IF NOT EXISTS refunds (
     refund_method VARCHAR(50),
     notes TEXT,
     processed_at DATETIME,
-    created_by INT,
+    created_by CHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -568,7 +570,7 @@ CREATE TABLE IF NOT EXISTS refunds (
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
     token VARCHAR(255) NOT NULL UNIQUE,
     expires_at TIMESTAMP NOT NULL,
     used TINYINT(1) DEFAULT 0,
@@ -585,7 +587,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
     token VARCHAR(255) NOT NULL UNIQUE,
     expires_at TIMESTAMP NOT NULL,
     used TINYINT(1) DEFAULT 0,
@@ -602,7 +604,7 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
 
 CREATE TABLE IF NOT EXISTS user_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
     session_token VARCHAR(255) NOT NULL UNIQUE,
     ip_address VARCHAR(45),
     user_agent TEXT,
@@ -635,7 +637,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 
 CREATE TABLE IF NOT EXISTS api_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
     name VARCHAR(100),
     token VARCHAR(255) NOT NULL UNIQUE,
     permissions JSON,
@@ -658,13 +660,13 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 
 CREATE TABLE IF NOT EXISTS wishlist_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    product_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
+    product_id CHAR(36) NOT NULL,
     variant_id INT,
     notes TEXT,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -685,8 +687,8 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
 
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    user_id INT NOT NULL,
+    product_id CHAR(36) NOT NULL,
+    user_id CHAR(36) NOT NULL,
     rating TINYINT NOT NULL,
     title VARCHAR(255),
     comment TEXT NOT NULL,
@@ -696,12 +698,12 @@ CREATE TABLE IF NOT EXISTS reviews (
     helpful_count INT DEFAULT 0,
     reported_count INT DEFAULT 0,
     moderation_notes TEXT,
-    deleted_by INT,
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_rating CHECK (rating >= 1 AND rating <= 5),
+    CONSTRAINT chk_reviews_rating CHECK (rating >= 1 AND rating <= 5),
     CONSTRAINT chk_helpful_count CHECK (helpful_count >= 0),
     CONSTRAINT chk_reported_count CHECK (reported_count >= 0),
     
@@ -721,8 +723,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 
 CREATE TABLE IF NOT EXISTS user_interactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    product_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
+    product_id CHAR(36) NOT NULL,
     interaction_type ENUM('view', 'cart_add', 'wishlist_add', 'purchase') NOT NULL,
     session_id VARCHAR(255),
     ip_address VARCHAR(45),
@@ -757,9 +759,9 @@ CREATE TABLE IF NOT EXISTS serviceable_pincodes (
     delivery_charges DECIMAL(10,2) DEFAULT 0,
     cod_available TINYINT(1) DEFAULT 1,
     is_active TINYINT(1) DEFAULT 1,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -780,8 +782,8 @@ CREATE TABLE IF NOT EXISTS serviceable_pincodes (
 
 CREATE TABLE IF NOT EXISTS chat_conversations (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
-    assigned_admin_id INT,
+    customer_id CHAR(36) NOT NULL,
+    assigned_admin_id CHAR(36),
     status ENUM('open', 'pending', 'closed', 'archived') DEFAULT 'open',
     priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
     subject VARCHAR(255),
@@ -789,9 +791,9 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
     archived_at DATETIME,
     rating TINYINT,
     feedback TEXT,
-    created_by INT,
-    updated_by INT,
-    deleted_by INT,
+    created_by CHAR(36),
+    updated_by CHAR(36),
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -814,14 +816,14 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     conversation_id INT NOT NULL,
-    sender_id INT NOT NULL,
+    sender_id CHAR(36) NOT NULL,
     sender_type ENUM('customer', 'admin', 'system') NOT NULL,
     message TEXT NOT NULL,
     attachments JSON,
     is_read TINYINT(1) DEFAULT 0,
     is_edited TINYINT(1) DEFAULT 0,
     is_deleted TINYINT(1) DEFAULT 0,
-    deleted_by INT,
+    deleted_by CHAR(36),
     deleted_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -842,7 +844,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE TABLE IF NOT EXISTS message_reads (
     id INT AUTO_INCREMENT PRIMARY KEY,
     message_id INT NOT NULL,
-    user_id INT NOT NULL,
+    user_id CHAR(36) NOT NULL,
     read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (message_id) REFERENCES chat_messages(id) ON DELETE CASCADE,
@@ -859,7 +861,7 @@ CREATE TABLE IF NOT EXISTS message_reads (
 
 CREATE TABLE IF NOT EXISTS activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    user_id CHAR(36),
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(50),
     resource_id INT,
@@ -1048,3 +1050,23 @@ INSERT INTO serviceable_pincodes (pincode, city, state, eta_days, cod_available)
 ('411001', 'Pune', 'Maharashtra', 3, 1),
 ('226001', 'Lucknow', 'Uttar Pradesh', 5, 1)
 ON DUPLICATE KEY UPDATE eta_days = VALUES(eta_days);
+
+-- ============================================
+-- INVENTORY LOCKS (New)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS inventory_locks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    product_id CHAR(36) NOT NULL,
+    quantity INT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    
+    INDEX idx_inventory_locks_user (user_id),
+    INDEX idx_inventory_locks_product (product_id),
+    INDEX idx_inventory_locks_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
