@@ -33,8 +33,10 @@
           id="category-menu-toggle"
           class="category-menu-toggle"
           type="button"
+          aria-haspopup="true"
           aria-expanded="false"
           aria-controls="category-menu-dropdown"
+          aria-label="Toggle categories menu"
         >
           <i class="fas fa-bars" aria-hidden="true"></i>
           Menu
@@ -45,52 +47,53 @@
           id="category-menu-dropdown"
           class="category-menu-dropdown"
           aria-label="Product categories"
+          aria-hidden="true"
         >
-          <div class="mega-menu-sidebar" aria-label="Categories">
-            <button class="mega-menu-category is-active" type="button" data-mega-category="fashion" aria-expanded="true" aria-controls="mega-panel-fashion">
+          <div class="mega-menu-sidebar" role="tablist" aria-orientation="vertical" aria-label="Categories">
+            <button class="mega-menu-category is-active" type="button" role="tab" data-mega-category="fashion" aria-selected="true" aria-expanded="true" aria-controls="mega-panel-fashion" id="mega-tab-fashion">
               <i class="fas fa-tshirt" aria-hidden="true"></i>
               <span>Fashion</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="electronics" aria-expanded="false" aria-controls="mega-panel-electronics">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="electronics" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-electronics" id="mega-tab-electronics">
               <i class="fas fa-laptop" aria-hidden="true"></i>
               <span>Electronics</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="grocery" aria-expanded="false" aria-controls="mega-panel-grocery">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="grocery" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-grocery" id="mega-tab-grocery">
               <i class="fas fa-shopping-basket" aria-hidden="true"></i>
               <span>Grocery</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="toys" aria-expanded="false" aria-controls="mega-panel-toys">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="toys" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-toys" id="mega-tab-toys">
               <i class="fas fa-puzzle-piece" aria-hidden="true"></i>
               <span>Toys</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="stationery" aria-expanded="false" aria-controls="mega-panel-stationery">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="stationery" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-stationery" id="mega-tab-stationery">
               <i class="fas fa-pencil-alt" aria-hidden="true"></i>
               <span>Stationery</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="home-kitchen" aria-expanded="false" aria-controls="mega-panel-home-kitchen">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="home-kitchen" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-home-kitchen" id="mega-tab-home-kitchen">
               <i class="fas fa-home" aria-hidden="true"></i>
               <span>Home &amp; Kitchen</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="beauty" aria-expanded="false" aria-controls="mega-panel-beauty">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="beauty" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-beauty" id="mega-tab-beauty">
               <i class="fas fa-spa" aria-hidden="true"></i>
               <span>Beauty</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="sports" aria-expanded="false" aria-controls="mega-panel-sports">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="sports" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-sports" id="mega-tab-sports">
               <i class="fas fa-running" aria-hidden="true"></i>
               <span>Sports</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="pet-supplies" aria-expanded="false" aria-controls="mega-panel-pet-supplies">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="pet-supplies" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-pet-supplies" id="mega-tab-pet-supplies">
               <i class="fas fa-paw" aria-hidden="true"></i>
               <span>Pet Supplies</span>
             </button>
-            <button class="mega-menu-category" type="button" data-mega-category="automotive" aria-expanded="false" aria-controls="mega-panel-automotive">
+            <button class="mega-menu-category" type="button" role="tab" data-mega-category="automotive" aria-selected="false" aria-expanded="false" aria-controls="mega-panel-automotive" id="mega-tab-automotive">
               <i class="fas fa-car" aria-hidden="true"></i>
               <span>Automotive</span>
             </button>
           </div>
 
           <div class="mega-menu-content">
-            <section id="mega-panel-fashion" class="mega-menu-panel is-active" data-mega-panel="fashion" aria-labelledby="mega-title-fashion">
+            <section id="mega-panel-fashion" class="mega-menu-panel is-active" role="tabpanel" data-mega-panel="fashion" aria-labelledby="mega-tab-fashion">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-fashion">Fashion</h3>
                 <a href="shop.html?category=Fashion">Shop all Fashion</a>
@@ -134,7 +137,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-electronics" class="mega-menu-panel" data-mega-panel="electronics" aria-labelledby="mega-title-electronics">
+            <section id="mega-panel-electronics" class="mega-menu-panel" role="tabpanel" data-mega-panel="electronics" aria-labelledby="mega-tab-electronics">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-electronics">Electronics</h3>
                 <a href="shop.html?category=Electronics">Shop all Electronics</a>
@@ -178,7 +181,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-grocery" class="mega-menu-panel" data-mega-panel="grocery" aria-labelledby="mega-title-grocery">
+            <section id="mega-panel-grocery" class="mega-menu-panel" role="tabpanel" data-mega-panel="grocery" aria-labelledby="mega-tab-grocery">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-grocery">Grocery</h3>
                 <a href="shop.html?category=Grocery">Shop all Grocery</a>
@@ -198,7 +201,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-toys" class="mega-menu-panel" data-mega-panel="toys" aria-labelledby="mega-title-toys">
+            <section id="mega-panel-toys" class="mega-menu-panel" role="tabpanel" data-mega-panel="toys" aria-labelledby="mega-tab-toys">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-toys">Toys</h3>
                 <a href="shop.html?category=Toys">Shop all Toys</a>
@@ -217,7 +220,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-stationery" class="mega-menu-panel" data-mega-panel="stationery" aria-labelledby="mega-title-stationery">
+            <section id="mega-panel-stationery" class="mega-menu-panel" role="tabpanel" data-mega-panel="stationery" aria-labelledby="mega-tab-stationery">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-stationery">Stationery</h3>
                 <a href="shop.html?category=Stationery">Shop all Stationery</a>
@@ -232,7 +235,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-home-kitchen" class="mega-menu-panel" data-mega-panel="home-kitchen" aria-labelledby="mega-title-home-kitchen">
+            <section id="mega-panel-home-kitchen" class="mega-menu-panel" role="tabpanel" data-mega-panel="home-kitchen" aria-labelledby="mega-tab-home-kitchen">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-home-kitchen">Home &amp; Kitchen</h3>
                 <a href="shop.html?category=Home%20%26%20Kitchen">Shop all Home &amp; Kitchen</a>
@@ -247,7 +250,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-beauty" class="mega-menu-panel" data-mega-panel="beauty" aria-labelledby="mega-title-beauty">
+            <section id="mega-panel-beauty" class="mega-menu-panel" role="tabpanel" data-mega-panel="beauty" aria-labelledby="mega-tab-beauty">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-beauty">Beauty</h3>
                 <a href="shop.html?category=Beauty">Shop all Beauty</a>
@@ -261,7 +264,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-sports" class="mega-menu-panel" data-mega-panel="sports" aria-labelledby="mega-title-sports">
+            <section id="mega-panel-sports" class="mega-menu-panel" role="tabpanel" data-mega-panel="sports" aria-labelledby="mega-tab-sports">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-sports">Sports</h3>
                 <a href="shop.html?category=Sports">Shop all Sports</a>
@@ -275,7 +278,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-pet-supplies" class="mega-menu-panel" data-mega-panel="pet-supplies" aria-labelledby="mega-title-pet-supplies">
+            <section id="mega-panel-pet-supplies" class="mega-menu-panel" role="tabpanel" data-mega-panel="pet-supplies" aria-labelledby="mega-tab-pet-supplies">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-pet-supplies">Pet Supplies</h3>
                 <a href="shop.html?category=Pet%20Supplies">Shop all Pet Supplies</a>
@@ -289,7 +292,7 @@
               </div>
             </section>
 
-            <section id="mega-panel-automotive" class="mega-menu-panel" data-mega-panel="automotive" aria-labelledby="mega-title-automotive">
+            <section id="mega-panel-automotive" class="mega-menu-panel" role="tabpanel" data-mega-panel="automotive" aria-labelledby="mega-tab-automotive">
               <div class="mega-menu-panel-header">
                 <h3 id="mega-title-automotive">Automotive</h3>
                 <a href="shop.html?category=Automotive">Shop all Automotive</a>
